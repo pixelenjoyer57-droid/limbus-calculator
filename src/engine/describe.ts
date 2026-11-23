@@ -304,6 +304,11 @@ export function describeAction(a: Action, nameOf: NameOf = builtinName): string 
       return a.who === "self" ? `Lose ${amt()} SP` : `Deal ${amt()} SP damage${whoSuffix(a, ["target"])}`;
     case "shield":
       return `Gain ${amt()}${a.hpMode === "pctMax" ? "% of max HP as" : ""} Shield${whoSuffix(a, ["self"])}`;
+    case "triggerStatus": {
+      const n = Math.min(10, Math.max(1, Math.floor(a.amount.base || 1)));
+      const whoTxt = a.who === "self" ? "self" : a.who === "target" || a.who === "mainTarget" ? "target" : WHO_LABEL[a.who];
+      return `Trigger ${nameOf(a.status)} on ${whoTxt}${n > 1 ? ` ×${n}` : ""}`;
+    }
     case "tremorBurst":
       return `Trigger Tremor Burst${a.amount.base > 1 || a.amount.per ? ` ${amt()} times` : ""}${whoSuffix(a, ["target"])}`;
     case "convertTremor":

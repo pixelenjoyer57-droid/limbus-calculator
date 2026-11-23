@@ -152,11 +152,42 @@ export interface PlannedAction {
   note?: string;
 }
 
+export interface ClashSideInfo {
+  name: string;
+  skill: string;
+  side: Side;
+  sin: Sin | null;
+  coins: number;
+}
+export interface ClashRollLog {
+  coins: string; // "H" / "T" / "P" (paralyzed) per active coin, in order
+  base: number;
+  coinAdd: number;
+  mult: number;
+  finalPower: number;
+  clashMods: { label: string; value: number }[];
+  total: number;
+}
+export interface ClashRoundLog {
+  a: ClashRollLog;
+  b: ClashRollLog;
+  result: "a" | "b" | "tie";
+  broke?: { side: "a" | "b"; coin: number; cracked: boolean; left: number };
+}
+export interface ClashLog {
+  a: ClashSideInfo;
+  b: ClashSideInfo;
+  rounds: ClashRoundLog[];
+  winner: "a" | "b" | null;
+  outcome: "win" | "cancelled" | "interrupted";
+}
+
 export interface LogEntry {
   turn: number;
   kind: "turn" | "info" | "clash" | "attack" | "damage" | "status" | "stagger" | "death" | "sp" | "effect" | "warn" | "result";
   text: string;
   details?: string[];
+  clash?: ClashLog;
   side?: Side;
   important?: boolean;
 }

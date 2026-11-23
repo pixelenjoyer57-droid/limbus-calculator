@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Icon } from "./icons";
 import { useSettings } from "../store/settings";
+import "./taginput.css";
 
 export function Button({
   children, onClick, variant = "", small, icon, label, disabled, type = "button", title, className = "", block,
@@ -100,6 +101,93 @@ export function TextInput({
   return (
     <Field label={label} hint={hint} warn={warn} info={info} htmlFor={id} className={className}>
       <input id={id} className="input" type="text" value={value} maxLength={maxLength} placeholder={placeholder} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} />
+    </Field>
+  );
+}
+
+/** Chips + text box for lists of free-text tags. Tags may contain spaces; Enter or "," commits. */
+export function TagInput({
+  label, value, onChange, placeholder, hint, max = 30, maxLength = 40, className,
+}: {
+  label: string;
+  value: string[];
+  onChange: (tags: string[]) => void;
+  placeholder?: string;
+  hint?: ReactNode;
+  max?: number;
+  maxLength?: number;
+  className?: string;
+}) {
+  const id = useId();
+  const [draft, setDraft] = useState("");
+  const add = (parts: string[]) => {
+    const next = [...value];
+    for (const raw of parts) {
+      const t = raw.trim().slice(0, maxLength).trim();
+      if (!t || next.length >= max) continue;
+      if (next.some((x) => x.toLowerCase() === t.toLowerCase())) continue;
+      next.push(t);
+    }
+    if (next.length !== value.length) onChange(next);
+  };
+  const commit = () => {
+    if (draft.trim()) add([draft]);
+    setDraft("");
+  };
+  const full = value.length >= max;
+  return (
+    <Field label={label} hint={hint} htmlFor={id} className={className}>
+      <div className="taginput">
+        {value.length > 0 && (
+          <ul className="taginput-list" aria-label={`${label}: current tags`}>
+            {value.map((t) => (
+              <li key={t} className="taginput-chip">
+                <span>{t}</span>
+                <button type="button" aria-label={`Remove ${t}`} title={`Remove ${t}`} onClick={() => onChange(value.filter((x) => x !== t))}>
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="taginput-row">
+          <input
+            id={id}
+            className="input"
+            type="text"
+            value={draft}
+            disabled={full}
+            placeholder={full ? `Limit of ${max} reached` : placeholder ?? "Type a tag, press Enter"}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v.includes(",")) {
+                const parts = v.split(",");
+                const rest = parts.pop() ?? "";
+                add(parts);
+                setDraft(rest);
+              } else setDraft(v);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commit();
+              } else if (e.key === "Backspace" && !draft && value.length) onChange(value.slice(0, -1));
+            }}
+            onPaste={(e) => {
+              const text = e.clipboardData.getData("text");
+              if (/[,\n]/.test(text)) {
+                e.preventDefault();
+                add((draft + text).split(/[,\n]/));
+                setDraft("");
+              }
+            }}
+            onBlur={commit}
+          />
+          <button type="button" className="btn small" disabled={full || !draft.trim()} onClick={commit}>
+            Add
+          </button>
+        </div>
+      </div>
     </Field>
   );
 }

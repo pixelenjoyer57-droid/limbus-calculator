@@ -5,7 +5,7 @@
 //
 // Wiki content is CC BY-SA 4.0 (limbuscompany.wiki.gg); the generated files keep
 // the attribution in index.json and every item's `source` field.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { categoryPages, pageTexts, WIKI, type PageText } from "./wiki";
 import { parseLuaTable } from "./lua";
@@ -108,10 +108,15 @@ async function main() {
   };
   mkdirSync(OUT, { recursive: true });
   const sizes: Record<string, number> = {};
+  let dataChanged = false;
   for (const [name, data] of Object.entries(files)) {
     // one item per line keeps git diffs of weekly refreshes small
     const json = "[\n" + (data as unknown[]).map((x) => JSON.stringify(x)).join(",\n") + "\n]\n";
-    writeFileSync(join(OUT, `${name}.json`), json);
+    const file = join(OUT, `${name}.json`);
+    if (!existsSync(file) || readFileSync(file, "utf8") !== json) {
+      writeFileSync(file, json);
+      dataChanged = true;
+    }
     sizes[name] = json.length;
   }
   const index = {
@@ -125,7 +130,18 @@ async function main() {
     sizes,
     coverage,
   };
-  writeFileSync(join(OUT, "index.json"), JSON.stringify(index, null, 2));
+  // Keep the old timestamp when nothing changed, so scheduled refreshes only commit real updates.
+  const indexFile = join(OUT, "index.json");
+  if (existsSync(indexFile)) {
+    try {
+      const old = JSON.parse(readFileSync(indexFile, "utf8"));
+      const strip = (x: Record<string, unknown>) => JSON.stringify({ ...x, generatedAt: "" });
+      if (strip(old) === strip(index) && !dataChanged) index.generatedAt = old.generatedAt;
+    } catch {
+      /* rewrite */
+    }
+  }
+  writeFileSync(indexFile, JSON.stringify(index, null, 2) + "\n");
   console.log(JSON.stringify(index.counts), "coverage", JSON.stringify(coverage));
   const reportArg = args.indexOf("--report");
   if (reportArg >= 0) {

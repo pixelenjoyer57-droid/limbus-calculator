@@ -7,7 +7,7 @@ import {
   GIFT_KEYWORDS, OUTCOME_KINDS, newId, zEventChoice, zOutcome,
   type CoinType, type CustomStatus, type Encounter, type EventChoice, type GameEvent, type Gift, type Outcome,
 } from "../../data/schema";
-import { Button, Check, NumberInput, Select, TextArea, TextInput } from "../../ui/controls";
+import { Button, Check, NumberInput, Select, TagInput, TextArea, TextInput } from "../../ui/controls";
 import { Notice, Section } from "../../ui/layout";
 import { StatusSelect, useStatusName } from "../../ui/game";
 import { useWorkspace } from "../../store/workspace";
@@ -24,6 +24,7 @@ export function EncounterEditor({ item: x, edit }: { item: Encounter; edit: Edit
       <Section id="enc-basics" title="Basics" summary={`${x.type} · deploy ${x.maxDeploy}`}>
         <div className="fields">
           <TextInput label="Encounter name" className="span-2" value={x.name} onChange={(v) => edit((d) => void (d.name = v), "name")} />
+          <TagInput label="Tags" className="full" value={x.tags} onChange={(v) => edit((d) => void (d.tags = v), "tags")} hint="Your own labels for searching and filtering. Spaces are fine; press Enter or comma to add." />
           <Select
             label="Type"
             value={x.type}
@@ -99,6 +100,7 @@ export function GiftEditor({ item: x, edit }: { item: Gift; edit: Edit<Gift> }) 
       <Section id="gift-basics" title="Basics" summary={`Tier ${x.tier} · ${KEYWORD_LABEL[x.keyword]}`}>
         <div className="fields">
           <TextInput label="Gift name" className="span-2" value={x.name} onChange={(v) => edit((d) => void (d.name = v), "name")} />
+          <TagInput label="Tags" className="full" value={x.tags} onChange={(v) => edit((d) => void (d.tags = v), "tags")} hint="Your own labels for searching and filtering. Spaces are fine; press Enter or comma to add." />
           <Select label="Tier" value={x.tier} onChange={(v) => edit((d) => void (d.tier = v))} options={GIFT_TIERS.map((t) => ({ value: t, label: t }))} />
           <Select label="Keyword" value={x.keyword} onChange={(v) => edit((d) => void (d.keyword = v))} options={GIFT_KEYWORDS.map((k) => ({ value: k, label: KEYWORD_LABEL[k] }))} />
           <NumberInput label="Cost" value={x.cost} onChange={(n) => edit((d) => void (d.cost = n))} min={0} max={9999} />
@@ -146,6 +148,7 @@ export function StatusEditor({ item: x, edit }: { item: CustomStatus; edit: Edit
       <Section id="st-basics" title="Basics" summary={`${x.polarity} · ${x.mode === "pc" ? "Potency + Count" : "single value"}`}>
         <div className="fields">
           <TextInput label="Status name" className="span-2" value={x.name} onChange={(v) => edit((d) => void (d.name = v), "name")} />
+          <TagInput label="Tags" className="full" value={x.tags} onChange={(v) => edit((d) => void (d.tags = v), "tags")} hint="Your own labels for searching and filtering. Spaces are fine; press Enter or comma to add." />
           <Select label="Kind" value={x.polarity} onChange={(v) => edit((d) => void (d.polarity = v))} options={[{ value: "positive", label: "Positive (buff)" }, { value: "negative", label: "Negative (debuff)" }, { value: "neutral", label: "Neutral" }]} />
           <Select label="Values" value={x.mode} onChange={(v) => edit((d) => void (d.mode = v))} options={[{ value: "value", label: "One value (Stack / Count)" }, { value: "pc", label: "Potency and Count" }]} />
           {x.mode === "pc" && <NumberInput label="Max Potency" value={x.maxPotency} onChange={(n) => edit((d) => void (d.maxPotency = n))} min={1} max={999} />}
@@ -412,6 +415,7 @@ export function EventEditor({ item: x, edit }: { item: GameEvent; edit: Edit<Gam
       <Section id="ev-basics" title="Basics" summary={`${x.choices.length} choice${x.choices.length === 1 ? "" : "s"}`}>
         <div className="fields">
           <TextInput label="Event name" className="full" value={x.name} onChange={(v) => edit((d) => void (d.name = v), "name")} />
+          <TagInput label="Tags" className="full" value={x.tags} onChange={(v) => edit((d) => void (d.tags = v), "tags")} hint="Your own labels for searching and filtering. Spaces are fine; press Enter or comma to add." />
           <TextArea label="Event text" className="full" value={x.intro} onChange={(v) => edit((d) => void (d.intro = v), "intro")} rows={4} />
         </div>
       </Section>
@@ -445,6 +449,7 @@ export function CoinTypeEditor({ item: x, edit }: { item: CoinType; edit: Edit<C
       <Section id="ct-basics" title="Basics" summary={x.clash === "normal" ? "breaks when it loses" : x.clash}>
         <div className="fields">
           <TextInput label="Coin type name" className="span-2" value={x.name} onChange={(v) => edit((d) => void (d.name = v), "name")} />
+          <TagInput label="Tags" className="full" value={x.tags} onChange={(v) => edit((d) => void (d.tags = v), "tags")} hint="Your own labels for searching and filtering. Spaces are fine; press Enter or comma to add." />
           <div className="field">
             <label className="label" htmlFor={`ct-color-${x.id}`}>
               Colour

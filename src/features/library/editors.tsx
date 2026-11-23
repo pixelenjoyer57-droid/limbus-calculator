@@ -2,7 +2,7 @@ import { DMG_LABEL, DMG_TYPES, EGO_GRADES, LIMITS, RARITY_LABEL, SIN_LABEL, SINS
 import { overclockCost } from "../../engine/formulas";
 import { newId, zPart, zPassive, type Ego, type Enemy, type Identity, type Part } from "../../data/schema";
 import { newSkill } from "../../data/defaults";
-import { Button, Check, NumberInput, Select, TextArea, TextInput } from "../../ui/controls";
+import { Button, Check, NumberInput, Select, TagInput, TextArea, TextInput } from "../../ui/controls";
 import { Notice, Section } from "../../ui/layout";
 import { ResistField, SINNER_OPTIONS } from "../../ui/game";
 import { PassiveEditor, SkillEditor } from "./skills";
@@ -92,13 +92,14 @@ export function IdentityEditor({ item: x, edit }: { item: Identity; edit: Edit<I
           <TextInput label="Identity name" className="span-2" value={x.name} onChange={(v) => edit((d) => void (d.name = v), "name")} />
           <Select label="Sinner" value={x.sinner} onChange={(v) => edit((d) => void (d.sinner = v))} options={SINNER_OPTIONS} />
           <Select label="Rarity" value={String(x.rarity)} onChange={(v) => edit((d) => void (d.rarity = Number(v)))} options={[1, 2, 3].map((r) => ({ value: String(r), label: RARITY_LABEL[r] }))} />
-          <TextInput
-            label="Traits (comma separated)"
+          <TagInput
+            label="Traits"
             className="full"
-            value={x.traits.join(", ")}
-            onChange={(v) => edit((d) => void (d.traits = v.split(",").map((t) => t.trim()).filter(Boolean)), "traits")}
-            hint="Factions or keywords, e.g. 'Zwei Association, Example'. Conditions and event bonuses can check them."
+            value={x.traits}
+            onChange={(v) => edit((d) => void (d.traits = v), "traits")}
+            hint="Factions or keywords, e.g. 'Zwei Association'. Conditions and event bonuses can check them."
           />
+          <TagInput label="Tags" className="full" value={x.tags} onChange={(v) => edit((d) => void (d.tags = v), "tags")} hint="Your own labels for searching and filtering. Spaces are fine; press Enter or comma to add." />
         </div>
       </Section>
       <Section id="id-stats" title="Stats" summary={`HP ${x.hp} · Speed ${x.speedMin}–${x.speedMax} · Def ${x.level + x.defenseMod}`}>
@@ -179,6 +180,7 @@ export function EgoEditor({ item: x, edit }: { item: Ego; edit: Edit<Ego> }) {
       <Section id="ego-basics" title="Basics" summary={`${x.sinner} · ${x.grade}`}>
         <div className="fields">
           <TextInput label="E.G.O name" className="span-2" value={x.name} onChange={(v) => edit((d) => void (d.name = v), "name")} />
+          <TagInput label="Tags" className="full" value={x.tags} onChange={(v) => edit((d) => void (d.tags = v), "tags")} hint="Your own labels for searching and filtering. Spaces are fine; press Enter or comma to add." />
           <Select label="Sinner" value={x.sinner} onChange={(v) => edit((d) => void (d.sinner = v))} options={SINNER_OPTIONS} />
           <Select label="Grade" value={x.grade} onChange={(v) => edit((d) => void (d.grade = v))} options={EGO_GRADES.map((g) => ({ value: g, label: g }))} info="One E.G.O of each grade can be equipped per Sinner. Every Sinner's ZAYIN sets their starting Sin resistances." />
           <NumberInput label="SP cost" value={x.spCost} onChange={(n) => edit((d) => void (d.spCost = n), "sp")} min={0} max={999} info="Paid on use. Ending at −23 SP or lower risks Corrosion: 25% (−23…−33), 75% (−34…−44), 100% at −45." />
@@ -261,6 +263,7 @@ export function EnemyEditor({ item: x, edit }: { item: Enemy; edit: Edit<Enemy> 
       <Section id="en-basics" title="Basics" summary={`Lv ${x.level} · HP ${x.hp}${multi ? ` · ${x.parts.length} parts` : ""}`}>
         <div className="fields">
           <TextInput label="Enemy name" className="span-2" value={x.name} onChange={(v) => edit((d) => void (d.name = v), "name")} />
+          <TagInput label="Tags" className="full" value={x.tags} onChange={(v) => edit((d) => void (d.tags = v), "tags")} hint="Your own labels for searching and filtering. Spaces are fine; press Enter or comma to add." />
           <NumberInput label="Level" value={x.level} onChange={(n) => edit((d) => void (d.level = n), "lvl")} min={1} max={999} info="Offense and Defense Level start at the unit's Level." />
           <NumberInput label={multi ? "Core HP" : "HP"} value={x.hp} onChange={(n) => edit((d) => void (d.hp = n), "hp")} min={1} max={9999999} info={multi ? "Damage to any Part also hits the Core. The enemy is defeated when the Core reaches 0." : undefined} />
           <NumberInput label="Speed min" value={x.speedMin} onChange={(n) => edit((d) => void (d.speedMin = n), "smin")} min={1} max={99} />

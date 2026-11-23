@@ -10,7 +10,7 @@ import {
   canAct, clampSp, core, detailed, fmt, getStatus, log, opposite, pct, reduceStatus,
   removeStatus, sideUnits, stat, statusValue, staggerLevel, targetables, unit,
 } from "./state";
-import type { BattleState, CSkill, PlannedAction, UnitState } from "./types";
+import type { BattleState, CSkill, ClashLog, ClashRollLog, ClashRoundLog, ClashSideInfo, PlannedAction, UnitState } from "./types";
 import type { Coin } from "../data/schema";
 import {
   checkCondition, collectMods, evalValue, fireSkill, fireUnit, sumParts, unitSources,
@@ -600,6 +600,7 @@ interface ClashSideRoll {
   heads: number;
   coins: number;
   detail: string;
+  rec?: ClashRollLog;
 }
 
 function rollClash(b: BattleState, use: SkillUse, opp: SkillUse, oppDefLevel: number | null): ClashSideRoll {
@@ -624,7 +625,11 @@ function rollClash(b: BattleState, use: SkillUse, opp: SkillUse, oppDefLevel: nu
   const detail = detailed(b)
     ? `${use.user.name}: ${marks.join("")} → ${base.value}${acc.add ? ` + ${acc.add}` : ""}${acc.mul !== 1 ? ` ×${fmt(acc.mul)}` : ""}${fp ? ` ${fp > 0 ? "+" : "−"} ${Math.abs(fp)} power` : ""}${cpm.length ? ` + clash (${cpm.map((p) => `${p.label} ${p.value > 0 ? "+" : ""}${p.value}`).join(", ")})` : ""} = ${clashPower}`
     : "";
-  return { power: clashPower, heads, coins: marks.length, detail };
+  const rec: ClashRollLog | undefined =
+    b.settings.logDetail === "none"
+      ? undefined
+      : { coins: marks.join(""), base: base.value, coinAdd: acc.add, mult: acc.mul, finalPower: fp, clashMods: cpm.map((p) => ({ label: p.label, value: p.value })), total: clashPower };
+  return { power: clashPower, heads, coins: marks.length, detail, rec };
 }
 
 /**
@@ -642,6 +647,14 @@ export function resolveClash(b: BattleState, A: SkillUse, B: SkillUse): SkillUse
   const aDef = A.skill.kind === "guard" ? defenseLevel(b, A.user, B, A).value : null;
   const bDef = B.skill.kind === "guard" ? defenseLevel(b, B.user, A, B).value : null;
   const rounds: string[] = [];
+  const rec = b.settings.logDetail !== "none";
+  const sideInfo = (u: SkillUse): ClashSideInfo => ({ name: u.user.name, skill: u.skill.name, side: u.user.side, sin: u.skill.sin ?? null, coins: u.coins.length });
+  const clash: ClashLog = { a: sideInfo(A), b: sideInfo(B), rounds: [], winner: null, outcome: "win" };
+  const scoreText = () => {
+    if (!clash.rounds.length) return "";
+    const parts = clash.rounds.slice(0, 8).map((r) => `${r.a.total}–${r.b.total}`);
+    return ` (${parts.join(", ")}${clash.rounds.length > 8 ? ", …" : ""})`;
+  };
   let count = 0;
   while (activeCoins(A).length && activeCoins(B).length) {
     count++;
@@ -652,6 +665,8 @@ export function resolveClash(b: BattleState, A: SkillUse, B: SkillUse): SkillUse
     const ra = rollClash(b, A, B, bDef);
     const rb = rollClash(b, B, A, aDef);
     if (detailed(b)) rounds.push(`Round ${count}: ${ra.detail} vs ${rb.detail}`);
+    const roundLog: ClashRoundLog | null = rec && ra.rec && rb.rec ? { a: ra.rec, b: rb.rec, result: ra.power === rb.power ? "tie" : ra.power > rb.power ? "a" : "b" } : null;
+    if (roundLog) clash.rounds.push(roundLog);
     if (ra.power === rb.power) {
       if (count >= LIMITS.clashCountMax) break;
       continue;
@@ -662,14 +677,16 @@ export function resolveClash(b: BattleState, A: SkillUse, B: SkillUse): SkillUse
     // Unbreakable/Excision coins crack instead of breaking, unless an Excision coin beats them
     if (front.kind !== "normal" && !excision) front.cracked = true;
     else front.destroyed = true;
+    if (roundLog) roundLog.broke = { side: lose === A ? "a" : "b", coin: lose.coins.indexOf(front) + 1, cracked: !front.destroyed, left: activeCoins(lose).length };
     if (count >= LIMITS.clashCountMax) break;
   }
   if (!A.user.alive || !B.user.alive) {
-    log(b, "clash", `Clash interrupted: ${!A.user.alive ? A.user.name : B.user.name} fell during the Clash.`, rounds);
+    clash.outcome = "interrupted";
+    log(b, "clash", `Clash interrupted: ${!A.user.alive ? A.user.name : B.user.name} fell during the Clash — ${count} round${count === 1 ? "" : "s"}${scoreText()}`, rounds, rec ? { clash } : undefined);
     return A.user.alive ? A : B.user.alive ? B : null;
   }
   if (activeCoins(A).length && activeCoins(B).length) {
-    log(b, "clash", `${A.user.name} (${A.skill.name}) and ${B.user.name} (${B.skill.name}) reached ${count} Clash count: both skills are cancelled.`, rounds, { important: true });
+    log(b, "clash", `${A.user.name} (${A.skill.name}) and ${B.user.name} (${B.skill.name}) reached ${count} Clash count: both skills are cancelled${scoreText()}.`, rounds, { important: true, ...(rec ? { clash: { ...clash, outcome: "cancelled" as const } } : {}) });
     A.cancelled = B.cancelled = true;
     return null;
   }
@@ -686,9 +703,9 @@ export function resolveClash(b: BattleState, A: SkillUse, B: SkillUse): SkillUse
   log(
     b,
     "clash",
-    `${winner.user.name}'s ${winner.skill.name} wins the Clash against ${loser.user.name}'s ${loser.skill.name} (${count} round${count === 1 ? "" : "s"}).`,
+    `${winner.user.name}'s ${winner.skill.name} wins the Clash against ${loser.user.name}'s ${loser.skill.name} — ${count} round${count === 1 ? "" : "s"}${scoreText()}`,
     rounds,
-    { side: winner.user.side, important: true },
+    { side: winner.user.side, important: true, ...(rec ? { clash: { ...clash, winner: winner === A ? ("a" as const) : ("b" as const) } } : {}) },
   );
   fireSkill("clashWin", { b, self: winner.user, other: loser.user, use: winner, skill: winner.skill });
   fireSkill("clashLose", { b, self: loser.user, other: winner.user, use: loser, skill: loser.skill });

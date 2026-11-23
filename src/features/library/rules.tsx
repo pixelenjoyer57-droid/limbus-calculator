@@ -42,6 +42,7 @@ export const ACTION_LABEL: Record<Action["kind"], string> = {
   healSp: "Heal SP",
   loseSp: "SP damage / lose SP",
   shield: "Gain Shield",
+  triggerStatus: "Trigger a status now (Burn, Bleed, Rupture, Sinking, Tremor Burst…)",
   tremorBurst: "Trigger Tremor Burst",
   convertTremor: "Change Tremor type",
   sinkingDeluge: "Trigger Sinking Deluge",
@@ -249,6 +250,13 @@ function ActionEditor({ a, edit, onRemove, trigger }: { a: Action; edit: Edit<Ac
         )}
         {(a.kind === "tremorBurst" || a.kind === "sinkingDeluge" || a.kind === "forceStagger") && who("Target")}
         {a.kind === "tremorBurst" && amount("Times")}
+        {a.kind === "triggerStatus" && (
+          <>
+            <StatusSelect value={a.status} onChange={(v) => edit((d) => void (d.status = v))} />
+            {who("Whose status")}
+            {amount("Times (1–10)")}
+          </>
+        )}
         {a.kind === "convertTremor" && (
           <>
             {who("Target")}

@@ -609,7 +609,7 @@ function readAction(r: Reader, c: ActCtx): Action[] | null {
   }
   if ((m = r.eat(new RegExp(`heals?\\s+(?:by\\s+)?(${NUM})% of (?:the )?damage dealt`, "i")))) {
     const pct = num(m[1]);
-    return [A("healHp", { who: "self", amount: { base: 0, per: { q: Q("damageDealt"), every: 100 / pct, amount: 1 }, min: null, max: null } })];
+    return [A("healHp", { who: "self", amount: { base: 0, per: { q: Q("damageDealt"), q2: null, every: 100 / pct, amount: 1 }, min: null, max: null } })];
   }
   if ((m = r.eat(new RegExp(`heals?\\s+(${NUM})% of (?:this unit's |its |their )?max(?:imum)? HP`, "i")))) {
     const tw = readTimingAndWho(r, "self");
@@ -628,6 +628,18 @@ function readAction(r: Reader, c: ActCtx): Action[] | null {
     const tw = readTimingAndWho(r, "target");
     return [A("fixedDamage", { who: tw.who, amount: V(num(m[1])), sin: k && SIN_WORDS[k] ? SIN_WORDS[k] : null, dmgType: k && DMG_WORDS[k] ? DMG_WORDS[k] : null, count: tw.count })];
   }
+  // Activate / Trigger a status: "Activate ⟦Bleed⟧ on target once", "Activate the target's ⟦Bleed⟧", "Trigger ⟦Burn⟧ on self twice"
+  if ((m = r.eat(/(?:activate|trigger)s?\s+(?:(?:the\s+)?(target|this unit|self)'s\s+)?(?=⟦)/i))) {
+    const st = r.status();
+    if (st) {
+      const on = r.eat(/on\s+(?:the\s+)?(target|this unit|self|itself)\b/i);
+      const times = r.eat(/(?:(\d+)\s+times?|once|twice)\b/i);
+      const n = times ? (times[1] ? Number(times[1]) : /twice/i.test(times[0]) ? 2 : 1) : 1;
+      return [A("triggerStatus", { who: who(on ? on[1] : m[1], "target"), status: lookup(st).key, amount: V(n) })];
+    }
+    r.s = save;
+    return null;
+  }
   // Trigger Tremor Burst [N times]
   if ((m = r.eat(/trigger(?:s)? (?:a )?Tremor Burst(?: on (?:the )?(target|all enemies|self))?/i))) {
     const times = r.eat(/(\d+) times|twice/i);
@@ -636,7 +648,7 @@ function readAction(r: Reader, c: ActCtx): Action[] | null {
   // Raise Stagger Threshold by N / by N% of damage dealt
   if ((m = r.eat(new RegExp(`raises? (?:the )?(?:target's )?Stagger Threshold by (${NUM})%? of (?:the )?damage dealt`, "i")))) {
     const pct = num(m[1]);
-    return [A("raiseStaggerThreshold", { who: "target", amount: { base: 0, per: { q: Q("damageDealt"), every: 100 / pct, amount: 1 }, min: null, max: null } })];
+    return [A("raiseStaggerThreshold", { who: "target", amount: { base: 0, per: { q: Q("damageDealt"), q2: null, every: 100 / pct, amount: 1 }, min: null, max: null } })];
   }
   if ((m = r.eat(new RegExp(`raises? (?:the )?(?:target's )?Stagger Threshold by (${NUM})(?!%)`, "i")))) return [A("raiseStaggerThreshold", { who: "target", amount: V(num(m[1])) })];
   // reduce / consume / spend / lose statuses

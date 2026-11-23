@@ -115,7 +115,7 @@ export type Condition = z.infer<typeof zCondition>;
 export const ACTIONS = [
   "inflict", "reduceStatus", "removeStatus", "healHp", "loseHp", "fixedDamage", "coinDamagePct",
   "healSp", "loseSp", "shield", "tremorBurst", "convertTremor", "sinkingDeluge",
-  "raiseStaggerThreshold", "gainResource", "reuseCoin", "forceStagger", "mod", "note",
+  "raiseStaggerThreshold", "gainResource", "reuseCoin", "forceStagger", "mod", "note", "triggerStatus",
 ] as const;
 export type ActionKind = (typeof ACTIONS)[number];
 

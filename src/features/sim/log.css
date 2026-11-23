@@ -1,0 +1,21 @@
+.clash-card { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel-2); padding: 8px 10px; }
+.clash-card > summary { cursor: pointer; font-weight: 600; min-height: 32px; }
+.clash-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 6px 0; }
+.clash-side { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.clash-vs { color: var(--muted); font-weight: 700; }
+.clash-win { font-weight: 700; color: var(--green); border: 1px solid var(--green); border-radius: 999px; padding: 0 8px; font-size: 0.85em; }
+.clash-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+.clash-table { border-collapse: collapse; width: 100%; font-size: 0.9em; }
+.clash-table caption { text-align: left; color: var(--muted); padding: 4px 0; }
+.clash-table th, .clash-table td { border-top: 1px solid var(--line-soft); padding: 6px 6px; text-align: left; vertical-align: top; }
+.clash-table thead th { border-top: 0; color: var(--text-2); white-space: nowrap; }
+.clash-table td.num { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.clash-table td.res { min-width: 180px; }
+.coin-chips { display: inline-flex; gap: 3px; flex-wrap: wrap; }
+.coin-chip { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 0.75em; font-weight: 800; border: 2px solid var(--line); background: var(--panel); color: var(--text); }
+.coin-chip.H { border-color: var(--gold); background: var(--gold-soft); color: var(--gold); }
+.coin-chip.T { border-style: dashed; color: var(--text-2); }
+.coin-chip.P { border-style: dotted; color: var(--muted); text-decoration: line-through; }
+.clash-math { margin: 4px 0 0; padding: 6px 8px; border-left: 3px solid var(--gold); background: var(--bg-2); font-size: 0.9em; }
+.clash-math summary, .clash-table details summary { cursor: pointer; color: var(--gold); min-height: 28px; display: inline-flex; align-items: center; }
+.clash-final { margin-top: 6px; font-weight: 600; }

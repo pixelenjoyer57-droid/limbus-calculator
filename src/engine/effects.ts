@@ -6,7 +6,7 @@ import { SINS, type DmgType, type Sin } from "./constants";
 import * as R from "./rng";
 import {
   addStatus, bodies, core, fmt, hasStatus, log, negativeCount, opposite, positiveCount, reduceStatus,
-  removeStatus, sideUnits, statusDef, statusName, statusTotal, staggerLevel, targetables, unit,
+  cleanupStatus, removeStatus, sideUnits, statusDef, statusName, statusTotal, staggerLevel, targetables, unit,
 } from "./state";
 import type { BattleState, CSkill, TempMod, UnitState } from "./types";
 import {
@@ -558,8 +558,62 @@ export function runAction(a: Action, ctx: Ctx, label: string) {
       }
       return;
     }
+    case "triggerStatus": {
+      const times = Math.min(10, Math.max(1, Math.floor(amount())));
+      for (const t of targets()) triggerStatus(ctx, t, a.status, times, label);
+      return;
+    }
     case "note":
       return;
+  }
+}
+
+const TRIGGER_KINDS = ["BURN", "BLEED", "RUPTURE", "SINKING", "TREMOR", "POISON"];
+
+/** "Activate / trigger a status now": applies its effect N times, like the game does when it normally triggers. */
+function triggerStatus(ctx: Ctx, t: UnitState, key: string, times: number, label: string) {
+  const { b } = ctx;
+  const inst = t.statuses.find((s) => s.key === key) ?? t.statuses.find((s) => statusDef(b, s.key)?.countsAs === key);
+  const name = statusName(b, key);
+  if (!inst || !t.alive) {
+    return;
+  }
+  const kw = TRIGGER_KINDS.includes(inst.key) ? inst.key : statusDef(b, inst.key)?.countsAs;
+  if (!kw || !TRIGGER_KINDS.includes(kw)) {
+    log(b, "status", `${name} on ${t.name} has nothing to trigger (${label})`);
+    return;
+  }
+  const by = ctx.self;
+  for (let i = 0; i < times && t.alive; i++) {
+    const s = t.statuses.find((x) => x === inst);
+    if (!s) break;
+    if (kw === "TREMOR") {
+      if (s.key !== "TREMOR") {
+        log(b, "status", `${name} on ${t.name} has nothing to trigger (${label})`);
+        return;
+      }
+      tremorBurst(b, t, by, label);
+      continue;
+    }
+    if (kw === "POISON") {
+      const n = s.count;
+      s.count = Math.floor(s.count / 2);
+      cleanupStatus(b, t, s);
+      const d = dealFixedDamage(b, t, n, { label: name, by, canStagger: true, status: s.key });
+      log(b, "status", `Triggered ${name} on ${t.name}: ${d} damage (${label})`);
+      continue;
+    }
+    const n = s.potency;
+    reduceStatus(b, t, s.key, "count", 1);
+    if (kw === "SINKING" && t.hasSanity && !(t.side === "ally" && t.panic === "panic")) {
+      changeSp(b, t, -n, name);
+      log(b, "status", `Triggered ${name} on ${t.name}: ${n} SP damage (${label})`);
+      continue;
+    }
+    const d = dealFixedDamage(b, t, n, {
+      label: name, by, canStagger: kw === "BURN", status: s.key, sin: kw === "SINKING" ? "GLOOM" : null,
+    });
+    log(b, "status", `Triggered ${name} on ${t.name}: ${d} damage (${label})`);
   }
 }
 
