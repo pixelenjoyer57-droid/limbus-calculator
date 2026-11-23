@@ -1,8 +1,10 @@
 // Skill, coin and passive editors with live game-style previews.
-import { useState } from "react";
-import { DMG_LABEL, LIMITS, SIN_COLOR, SIN_LABEL, SINS } from "../../engine/constants";
-import { COIN_KINDS, SKILL_KINDS, type Passive, type Skill } from "../../data/schema";
-import { powerRange } from "../../engine/odds";
+import { useMemo, useState } from "react";
+import { DMG_LABEL, DMG_TYPES, LIMITS, SIN_COLOR, SIN_LABEL, SINS } from "../../engine/constants";
+import { COIN_KINDS, SKILL_KINDS, newCoin, type Coin, type CoinType, type Passive, type Skill } from "../../data/schema";
+import { skillPowerRange } from "../../engine/odds";
+import { coinTraits } from "../../engine/describe";
+import { useWorkspace } from "../../store/workspace";
 import { Button, Check, NumberInput, Select, TextArea, TextInput } from "../../ui/controls";
 import { SinBadge, SinPicker, DMG_OPTIONS } from "../../ui/game";
 import { EffectsPreview, RulesEditor, type Edit } from "./rules";
@@ -13,11 +15,18 @@ const COIN_LABEL: Record<(typeof COIN_KINDS)[number], string> = { normal: "Norma
 export function skillSummary(s: Skill): string {
   const n = s.coins.length;
   const cp = s.coinPower >= 0 ? `+${s.coinPower}` : `${s.coinPower}`;
-  return `${s.basePower} ${cp} ×${n} coin${n === 1 ? "" : "s"}`;
+  const custom = s.coins.some((c) => c.customType || c.power !== null || c.op || c.dmgType || c.sin || c.headsBonus || c.fixed);
+  return `${s.basePower} ${cp} ×${n} coin${n === 1 ? "" : "s"}${custom ? " (custom coins)" : ""}`;
+}
+
+export function useCoinTypeMap(): Record<string, CoinType> {
+  const list = useWorkspace((st) => st.ws.coinTypes);
+  return useMemo(() => Object.fromEntries(list.map((t) => [t.key, t])), [list]);
 }
 
 export function SkillPreview({ s, level }: { s: Skill; level?: number }) {
-  const range = powerRange(s.basePower, s.coinPower, s.coins.length);
+  const coinTypes = useCoinTypeMap();
+  const range = skillPowerRange(s, coinTypes);
   return (
     <div className="preview" aria-label="Preview">
       <p>
@@ -31,17 +40,20 @@ export function SkillPreview({ s, level }: { s: Skill; level?: number }) {
         {s.indiscriminate ? " · Indiscriminate" : ""}
       </p>
       <EffectsPreview effects={s.effects} />
-      {s.coins.map((c, i) =>
-        c.effects.length || c.kind !== "normal" ? (
+      {s.coins.map((c, i) => {
+        const traits = coinTraits(c, s.coinPower, coinTypes);
+        const typeRules = c.customType ? coinTypes[c.customType]?.effects ?? [] : [];
+        return c.effects.length || traits.length || typeRules.length ? (
           <div key={i}>
             <p className="small" style={{ margin: "6px 0 0" }}>
               <strong>Coin {i + 1}</strong>
-              {c.kind !== "normal" ? ` · ${COIN_LABEL[c.kind]} Coin` : ""}
+              {traits.length ? ` · ${traits.join(" · ")}` : ""}
             </p>
+            <EffectsPreview effects={typeRules} />
             <EffectsPreview effects={c.effects} />
           </div>
-        ) : null,
-      )}
+        ) : null;
+      })}
     </div>
   );
 }
@@ -102,7 +114,7 @@ export function SkillEditor({
               warn={coinWarn}
               onChange={(n) =>
                 edit((d) => {
-                  while (d.coins.length < n) d.coins.push({ kind: "normal", effects: [] });
+                  while (d.coins.length < n) d.coins.push(newCoin());
                   while (d.coins.length > n) d.coins.pop();
                 })
               }
@@ -125,25 +137,12 @@ export function SkillEditor({
 
           <h4 style={{ marginTop: 16 }}>Coins</h4>
           {s.coins.map((c, i) => (
-            <div className="coin-row" key={i}>
-              <div className="row">
-                <span className={`coin-dot ${c.kind}`} aria-hidden>
-                  {i + 1}
-                </span>
-                <strong>Coin {i + 1}</strong>
-                <div style={{ width: 180 }}>
-                  <Select label={`Coin ${i + 1} type`} value={c.kind} onChange={(v) => edit((d) => void (d.coins[i].kind = v))} options={COIN_KINDS.map((k) => ({ value: k, label: COIN_LABEL[k] }))} />
-                </div>
-              </div>
-              <RulesEditor
-                scope="coin"
-                effects={c.effects}
-                edit={(fn, k) => edit((d) => fn(d.coins[i].effects), k)}
-                emptyText="No coin effects."
-              />
-            </div>
+            <CoinEditor key={i} c={c} index={i} skill={s} edit={(fn, k) => edit((d) => fn(d.coins[i]), k ? `c${i}-${k}` : undefined)} />
           ))}
-          <p className="small muted">Unbreakable coins crack instead of breaking when they lose a Clash, then still hit with Coin Power fixed to 1. Excision coins also destroy enemy Unbreakable coins.</p>
+          <p className="small muted">
+            Unbreakable coins crack instead of breaking when they lose a Clash, then still hit with Coin Power fixed to 1. Excision coins also destroy enemy Unbreakable coins.
+            "Customize" a coin to give it its own Coin Power, damage type, sin or Heads chance — or make your own coin types in Builder → Coin types.
+          </p>
 
           <h4 style={{ marginTop: 16 }}>Skill effects</h4>
           <RulesEditor scope="skill" effects={s.effects} edit={(fn, k) => edit((d) => fn(d.effects), k)} emptyText="No skill-wide effects. Use these for [On Use], [Clash Win] and constant bonuses." />
@@ -155,6 +154,115 @@ export function SkillEditor({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** One coin: its type (built-in or custom), optional per-coin overrides, and its rules. */
+function CoinEditor({ c, index, skill, edit }: { c: Coin; index: number; skill: Skill; edit: Edit<Coin> }) {
+  const types = useWorkspace((st) => st.ws.coinTypes);
+  const map = useCoinTypeMap();
+  const [open, setOpen] = useState(false);
+  const t = c.customType ? map[c.customType] : undefined;
+  const traits = coinTraits(c, skill.coinPower, map);
+  const kind = t ? t.clash : c.kind;
+  const typeValue = c.customType ? `custom:${c.customType}` : c.kind;
+  const opValue = c.op ?? "";
+  const effOp = c.op ?? t?.op ?? "add";
+  return (
+    <div className="coin-row">
+      <div className="row">
+        <span className={`coin-dot ${kind}`} aria-hidden style={t ? { borderColor: t.color, color: t.color } : undefined}>
+          {index + 1}
+        </span>
+        <strong>Coin {index + 1}</strong>
+        <div style={{ width: 220 }}>
+          <Select
+            label={`Coin ${index + 1} type`}
+            value={typeValue}
+            onChange={(v) =>
+              edit((d) => {
+                if (v.startsWith("custom:")) {
+                  const key = v.slice(7);
+                  d.customType = key;
+                  d.kind = map[key]?.clash ?? "normal";
+                } else {
+                  d.customType = null;
+                  d.kind = v as Coin["kind"];
+                }
+              })
+            }
+            options={[
+              ...COIN_KINDS.map((k) => ({ value: k, label: COIN_LABEL[k], group: "Game coins" })),
+              ...types.map((x) => ({ value: `custom:${x.key}`, label: x.name || "Unnamed coin type", group: "Your coin types" })),
+              ...(c.customType && !t ? [{ value: `custom:${c.customType}`, label: "(deleted coin type)", group: "Your coin types" }] : []),
+            ]}
+          />
+        </div>
+        {traits.length > 0 && (
+          <span className="parts">
+            {traits.map((x) => (
+              <span key={x} className="part">
+                {x}
+              </span>
+            ))}
+          </span>
+        )}
+        <span className="spacer" />
+        <Button small onClick={() => setOpen(!open)} label={open ? `Done customizing coin ${index + 1}` : `Customize coin ${index + 1}`}>
+          {open ? "Done" : "Customize"}
+        </Button>
+      </div>
+      {open && (
+        <div className="fields" style={{ marginTop: 10 }}>
+          <Select
+            label={`Coin ${index + 1}: on Heads`}
+            value={opValue}
+            onChange={(v) => edit((d) => void (d.op = (v || null) as Coin["op"]))}
+            options={[
+              { value: "", label: t ? `Type's (${t.op === "multiply" ? "multiply" : "add"})` : "Add Coin Power" },
+              ...(t ? [{ value: "add", label: "Add Coin Power" }] : []),
+              { value: "multiply", label: "Multiply the skill's power" },
+            ]}
+            info="Multiply coins: Final Power = (Base + Heads add-coins) × every Heads multiplier, rounded down. The game files still mention 'Multiply Coins'; no current kit uses them."
+          />
+          {effOp === "multiply" ? (
+            <NumberInput label={`Coin ${index + 1}: multiplier`} value={c.mult ?? t?.mult ?? 2} onChange={(n) => edit((d) => void (d.mult = n), "mult")} min={0} max={10} step={0.25} decimals={2} />
+          ) : (
+            <>
+              <Check label={`Coin ${index + 1}: own Coin Power`} checked={c.power !== null} onChange={(on) => edit((d) => void (d.power = on ? (t?.power ?? skill.coinPower) : null))} hint={c.power === null ? `Uses ${t?.power != null ? "the coin type's" : "the skill's"} ${t?.power ?? skill.coinPower >= 0 ? "+" : ""}${t?.power ?? skill.coinPower}` : undefined} />
+              {c.power !== null && <NumberInput label={`Coin ${index + 1}: Coin Power`} value={c.power} onChange={(n) => edit((d) => void (d.power = n), "power")} min={-99} max={99} />}
+            </>
+          )}
+          <Select
+            label={`Coin ${index + 1}: damage type`}
+            value={c.dmgType ?? ""}
+            onChange={(v) => edit((d) => void (d.dmgType = (v || null) as Coin["dmgType"]))}
+            options={[{ value: "", label: `Skill's (${DMG_LABEL[skill.dmgType]})` }, ...DMG_TYPES.map((x) => ({ value: x, label: DMG_LABEL[x] }))]}
+          />
+          <Select
+            label={`Coin ${index + 1}: sin affinity`}
+            value={c.sin ?? ""}
+            onChange={(v) => edit((d) => void (d.sin = (v || null) as Coin["sin"]))}
+            options={[{ value: "", label: `Skill's (${skill.sin ? SIN_LABEL[skill.sin] : "none"})` }, ...SINS.map((x) => ({ value: x, label: SIN_LABEL[x] }))]}
+            info="Used for this coin's damage only (resistances, typed buffs). Resources and Resonance still use the skill's sin."
+          />
+          <NumberInput label={`Coin ${index + 1}: Heads bonus (%)`} value={c.headsBonus} onChange={(n) => edit((d) => void (d.headsBonus = n), "hb")} min={-100} max={100} hint="Added to 50 + SP for this coin." />
+          <Select
+            label={`Coin ${index + 1}: result`}
+            value={c.fixed ?? ""}
+            onChange={(v) => edit((d) => void (d.fixed = (v || null) as Coin["fixed"]))}
+            options={[{ value: "", label: t && t.fixed !== "none" ? `Type's (always ${t.fixed})` : "Random (50 + SP)" }, { value: "heads", label: "Always Heads" }, { value: "tails", label: "Always Tails" }]}
+          />
+        </div>
+      )}
+      {t && t.effects.length > 0 && (
+        <div className="preview" style={{ marginTop: 8 }}>
+          <span className="small muted">From the {t.name} coin type:</span>
+          <EffectsPreview effects={t.effects} />
+        </div>
+      )}
+      <RulesEditor scope="coin" effects={c.effects} edit={(fn, k) => edit((d) => fn(d.effects), k)} emptyText="No coin effects." />
     </div>
   );
 }

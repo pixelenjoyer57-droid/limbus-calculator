@@ -11,6 +11,7 @@ import {
   removeStatus, sideUnits, stat, statusValue, staggerLevel, targetables, unit,
 } from "./state";
 import type { BattleState, CSkill, PlannedAction, UnitState } from "./types";
+import type { Coin } from "../data/schema";
 import {
   checkCondition, collectMods, evalValue, fireSkill, fireUnit, sumParts, unitSources,
   type CoinRun, type CoinState, type Ctx, type ModPart, type SkillUse,
@@ -138,10 +139,6 @@ export function typedResistFactor(b: BattleState, u: UnitState, sin: Sin | null,
 // ---------------------------------------------------------------------------------
 // Power
 // ---------------------------------------------------------------------------------
-function isPlusSkill(skill: CSkill) {
-  return skill.coinPower >= 0;
-}
-
 export function basePower(b: BattleState, use: SkillUse, coin?: CoinRun): { value: number; parts: ModPart[] } {
   const parts: ModPart[] = [{ label: "Base Power", value: use.skill.basePower }];
   const bpu = statusValue(b, use.user, "BASE_POWER_UP");
@@ -150,11 +147,44 @@ export function basePower(b: BattleState, use: SkillUse, coin?: CoinRun): { valu
   return { value: sumParts(parts), parts };
 }
 
-/** Coin Power of one coin (1-based index), after Coin Boost/Drop and modifiers. */
-export function coinPower(b: BattleState, use: SkillUse, c: CoinState, coin?: CoinRun): number {
-  const skill = use.skill;
-  const plus = isPlusSkill(skill);
-  let cp = c.cracked ? (plus ? 1 : -1) : skill.coinPower;
+/** Turn a saved coin into its runtime state, applying its custom coin type (if any). */
+export function resolveCoin(b: BattleState, c: Coin, index: number): CoinState {
+  const t = c.customType ? b.content.coinTypes?.[c.customType] : undefined;
+  return {
+    kind: t ? t.clash : c.kind,
+    effects: c.effects,
+    typeEffects: t?.effects ?? [],
+    index,
+    destroyed: false,
+    cracked: false,
+    power: c.power ?? t?.power ?? null,
+    op: c.op ?? t?.op ?? "add",
+    mult: c.mult ?? t?.mult ?? 2,
+    dmgType: c.dmgType ?? t?.dmgType ?? null,
+    sin: c.sin ?? t?.sin ?? null,
+    headsBonus: c.headsBonus + (t?.headsBonus ?? 0),
+    fixed: c.fixed ?? (t && t.fixed !== "none" ? t.fixed : null),
+    ignoreParalyze: !!t?.ignoreParalyze,
+    crackedPower: t?.crackedPower ?? 1,
+    typeName: t?.name,
+  };
+}
+
+export interface CoinValue {
+  op: "add" | "multiply";
+  value: number;
+}
+
+/**
+ * What one coin adds on Heads (its Coin Power, after Coin Boost/Drop and modifiers),
+ * or what it multiplies the power by for multiply coins. Cracked coins use their
+ * cracked power (1 in the game) before modifiers.
+ */
+export function coinValue(b: BattleState, use: SkillUse, c: CoinState, coin?: CoinRun): CoinValue {
+  if (c.op === "multiply") return { op: "multiply", value: c.cracked ? 1 : Math.max(0, c.mult) };
+  const own = c.power ?? use.skill.coinPower;
+  const plus = own >= 0;
+  let cp = c.cracked ? (plus ? c.crackedPower : -c.crackedPower) : own;
   const ctx = ctxOf(b, use, undefined, coin ?? { index: c.index, coin: c, heads: false, crit: false, mods: [], damage: 0, reuse: 0, isReuse: false });
   for (const m of use.mods) if (m.stat === "coinPower" && (!m.coin || m.coin === c.index)) cp += m.value;
   for (const p of collectMods("coinPower", ctx)) cp += p.value;
@@ -165,7 +195,13 @@ export function coinPower(b: BattleState, use: SkillUse, c: CoinState, coin?: Co
     cp -= statusValue(b, use.user, "MINUS_COIN_BOOST");
     cp = Math.min(0, cp + statusValue(b, use.user, "MINUS_COIN_DROP"));
   }
-  return cp;
+  return { op: "add", value: cp };
+}
+
+/** Coin Power of one add-coin (kept for callers that only need the number). */
+export function coinPower(b: BattleState, use: SkillUse, c: CoinState, coin?: CoinRun): number {
+  const v = coinValue(b, use, c, coin);
+  return v.op === "add" ? v.value : 0;
 }
 
 /** Final Power bonuses from Power Up style statuses and modifiers. */
@@ -227,23 +263,48 @@ function headsP(b: BattleState, use: SkillUse): number {
   return headsChance(use.user.sp, use.user.hasSanity, bonus);
 }
 
-function toss(b: BattleState, use: SkillUse): boolean {
-  const f = b.settings.forceCoins?.[use.user.side];
-  if (f === "heads") return true;
-  if (f === "tails") return false;
-  return R.chance(b.rng, headsP(b, use));
+export interface Tossed extends CoinValue {
+  heads: boolean;
+  paralyzed: boolean;
 }
 
-/** Toss one coin, consuming Paralyze. Returns the Coin Power it contributes. */
-function tossCoin(b: BattleState, use: SkillUse, c: CoinState, coin?: CoinRun): { heads: boolean; value: number; paralyzed: boolean } {
-  const heads = toss(b, use);
+/**
+ * Toss one coin. Coins fixed to Heads/Tails ignore luck (and forced test outcomes);
+ * other coins use 50 + SP plus their own Heads bonus. Paralyze fixes the coin's power to 0
+ * (a multiply coin then multiplies by 1) and is used up one Count per coin.
+ */
+function tossCoin(b: BattleState, use: SkillUse, c: CoinState, coin?: CoinRun): Tossed {
+  let heads: boolean;
+  if (c.fixed === "heads") heads = true;
+  else if (c.fixed === "tails") heads = false;
+  else {
+    const f = b.settings.forceCoins?.[use.user.side];
+    if (f === "heads") heads = true;
+    else if (f === "tails") heads = false;
+    else heads = R.chance(b.rng, Math.max(0, Math.min(1, headsP(b, use) + c.headsBonus / 100)));
+  }
   let paralyzed = false;
-  if (statusValue(b, use.user, "PARALYZE") > 0) {
+  if (!c.ignoreParalyze && statusValue(b, use.user, "PARALYZE") > 0) {
     paralyzed = true;
     reduceStatus(b, use.user, "PARALYZE", "count", 1);
   }
-  const value = heads && !paralyzed ? coinPower(b, use, c, coin) : 0;
-  return { heads, value, paralyzed };
+  const cv = coinValue(b, use, c, coin);
+  const live = heads && !paralyzed;
+  return { heads, paralyzed, op: cv.op, value: live ? cv.value : cv.op === "multiply" ? 1 : 0 };
+}
+
+/** Power so far: (Base + every Heads add-coin) × every Heads multiply-coin, rounded down. */
+interface PowerAcc {
+  add: number;
+  mul: number;
+}
+const newAcc = (): PowerAcc => ({ add: 0, mul: 1 });
+function accPush(a: PowerAcc, t: Tossed) {
+  if (t.op === "multiply") a.mul *= t.value;
+  else a.add += t.value;
+}
+function accTotal(a: PowerAcc, base: number): number {
+  return Math.floor((base + a.add) * a.mul + 1e-9);
 }
 
 // ---------------------------------------------------------------------------------
@@ -471,14 +532,14 @@ export function killUnit(b: BattleState, u: UnitState, by?: UnitState) {
 // ---------------------------------------------------------------------------------
 // Skill use lifecycle
 // ---------------------------------------------------------------------------------
-export function newUse(_b: BattleState, action: PlannedAction, user: UnitState, skill: CSkill, target: UnitState): SkillUse {
+export function newUse(b: BattleState, action: PlannedAction, user: UnitState, skill: CSkill, target: UnitState): SkillUse {
   return {
     actionId: action.id,
     user,
     skill,
     mainTarget: target,
     targets: [target],
-    coins: skill.coins.map((c, i) => ({ kind: c.kind, effects: c.effects, index: i + 1, destroyed: false, cracked: false })),
+    coins: skill.coins.map((c, i) => resolveCoin(b, c, i + 1)),
     mods: [],
     clashCount: 0,
     clashed: false,
@@ -529,22 +590,23 @@ function rollClash(b: BattleState, use: SkillUse, opp: SkillUse, oppDefLevel: nu
   // remembered for Clashable Guards (threshold raise on win, roll reduction on loss)
   const base = basePower(b, use);
   let heads = 0;
-  let sum = base.value;
+  const acc = newAcc();
   const marks: string[] = [];
   for (const c of activeCoins(use)) {
     const r = tossCoin(b, use, c);
     if (r.heads) heads++;
-    sum += r.value;
+    accPush(acc, r);
     marks.push(r.paralyzed ? "P" : r.heads ? "H" : "T");
   }
   const fp = sumParts(finalPowerMods(b, use));
+  const sum = accTotal(acc, base.value);
   const power = Math.max(0, sum + fp);
   const cpm = clashPowerMods(b, use, opp, oppDefLevel);
   const clashPower = Math.max(0, power + sumParts(cpm));
   use.lastPower = power;
   use.lastClashPower = clashPower;
   const detail = detailed(b)
-    ? `${use.user.name}: ${marks.join("")} → ${base.value}${sum - base.value ? ` + ${sum - base.value}` : ""}${fp ? ` ${fp > 0 ? "+" : "−"} ${Math.abs(fp)} power` : ""}${cpm.length ? ` + clash (${cpm.map((p) => `${p.label} ${p.value > 0 ? "+" : ""}${p.value}`).join(", ")})` : ""} = ${clashPower}`
+    ? `${use.user.name}: ${marks.join("")} → ${base.value}${acc.add ? ` + ${acc.add}` : ""}${acc.mul !== 1 ? ` ×${fmt(acc.mul)}` : ""}${fp ? ` ${fp > 0 ? "+" : "−"} ${Math.abs(fp)} power` : ""}${cpm.length ? ` + clash (${cpm.map((p) => `${p.label} ${p.value > 0 ? "+" : ""}${p.value}`).join(", ")})` : ""} = ${clashPower}`
     : "";
   return { power: clashPower, heads, coins: marks.length, detail };
 }
@@ -647,11 +709,12 @@ function hasCrackedCoins(use: SkillUse) {
 
 function guardFinalPower(b: BattleState, guard: SkillUse, attacker: SkillUse): number {
   const base = basePower(b, guard).value;
-  let sum = base;
+  const acc = newAcc();
   for (const c of guard.coins) {
     if (c.destroyed) continue;
-    sum += tossCoin(b, guard, c).value;
+    accPush(acc, tossCoin(b, guard, c));
   }
+  let sum = accTotal(acc, base);
   sum += sumParts(finalPowerMods(b, guard));
   const def = defenseLevel(b, guard.user, attacker, guard).value;
   const off = offenseLevel(b, attacker, guard.user).value;
@@ -731,7 +794,7 @@ export function runAttack(b: BattleState, use: SkillUse, mode: "win" | "lose" | 
 
   const coinsToUse = use.coins.filter((c) => !c.destroyed && (mode !== "lose" || c.cracked));
   const marks: string[] = [];
-  let cumulative = 0;
+  const acc = newAcc();
   for (const c of coinsToUse) {
     let reuseLeft = 1;
     let reused = 0;
@@ -754,11 +817,11 @@ export function runAttack(b: BattleState, use: SkillUse, mode: "win" | "lose" | 
       run.heads = tossed.heads;
       if (tossed.heads) use.heads++;
       else use.tails++;
-      cumulative += tossed.value;
+      accPush(acc, tossed);
       marks.push(tossed.paralyzed ? "P" : tossed.heads ? "H" : "T");
       const bp = basePower(b, use, run);
       const fpParts = finalPowerMods(b, use, run);
-      const roll = Math.max(0, bp.value + cumulative + sumParts(fpParts));
+      const roll = Math.max(0, accTotal(acc, bp.value) + sumParts(fpParts));
 
       for (const t of use.targets) {
         if (!t.alive || !user.alive) continue;
@@ -832,7 +895,11 @@ function hitStub(b: BattleState, use: SkillUse, t: UnitState, run: CoinRun, roll
 /** One coin hitting one target: crit roll, damage formula, on-hit statuses and triggers. */
 function hitTarget(b: BattleState, use: SkillUse, t: UnitState, run: CoinRun, rollIn: number, defUse: SkillUse | undefined) {
   const user = use.user;
-  const skill = use.skill;
+  // A coin can deal its own damage type / sin ("This coin deals Slash damage").
+  const skill: CSkill =
+    run.coin.dmgType || run.coin.sin
+      ? { ...use.skill, dmgType: run.coin.dmgType ?? use.skill.dmgType, sin: run.coin.sin ?? use.skill.sin }
+      : use.skill;
   let roll = rollIn;
   if (use.guardPower && t.uid === use.mainTarget.uid) roll = guardReducedRoll(rollIn, use.guardPower);
 

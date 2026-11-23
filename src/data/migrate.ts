@@ -3,7 +3,7 @@
 import LZString from "lz-string";
 import { SINNERS, type DmgType, type Sin } from "../engine/constants";
 import {
-  COLLECTION, SCHEMA_BY_KIND, SCHEMA_VERSION, newId, zWorkspace, type AnyContent, type ContentKind, type Workspace,
+  COLLECTION, SCHEMA_BY_KIND, SCHEMA_VERSION, newCoin, newId, zWorkspace, type AnyContent, type ContentKind, type Workspace,
 } from "./schema";
 import { newEnemy, newIdentity, newSkill } from "./defaults";
 
@@ -41,7 +41,7 @@ function legacySkill(s: unknown, i: number) {
     dmgType: OLD_DMG[String(o.dmg)] ?? "SLASH",
     basePower: Math.round(Number(o.base) || 3),
     coinPower: Math.round(Number(o.coin) || 0),
-    coins: Array.from({ length: coinsN }, () => ({ kind: "normal" as const, effects: [] })),
+    coins: Array.from({ length: coinsN }, () => newCoin()),
     amount: [3, 2, 1][i] ?? 1,
   });
 }
@@ -76,7 +76,7 @@ function fromLegacy(d: Record<string, unknown>): AnyContent[] {
             sin: OLD_SIN[String(def.sin)] ?? null,
             basePower: Math.round(Number(def.base) || 5),
             coinPower: Math.round(Number(def.coin) || 4),
-            coins: Array.from({ length: Math.max(1, Math.min(5, Number(def.coins) || 1)) }, () => ({ kind: "normal" as const, effects: [] })),
+            coins: Array.from({ length: Math.max(1, Math.min(5, Number(def.coins) || 1)) }, () => newCoin()),
             amount: 0,
           }),
         ],

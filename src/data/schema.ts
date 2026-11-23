@@ -163,11 +163,55 @@ export const SKILL_KINDS = ["attack", "guard", "evade", "counter"] as const;
 export type SkillKind = (typeof SKILL_KINDS)[number];
 export const COIN_KINDS = ["normal", "unbreakable", "excision"] as const;
 
+export const COIN_OPS = ["add", "multiply"] as const;
+export const COIN_FIXED = ["heads", "tails"] as const;
+
+/**
+ * One coin of a skill. Everything except `kind`/`effects` is optional: null means
+ * "same as the skill" (or as the coin's custom type, when one is picked).
+ */
 export const zCoin = z.object({
   kind: z.enum(COIN_KINDS).catch("normal").default("normal"),
+  customType: z.string().max(80).nullable().catch(null).default(null), // key of a custom coin type
+  power: z.number().finite().transform(Math.round).pipe(z.number().min(-99).max(99)).nullable().catch(null).default(null), // own Coin Power
+  op: z.enum(COIN_OPS).nullable().catch(null).default(null), // "multiply": Heads multiplies the skill's power
+  mult: z.number().finite().min(0).max(10).nullable().catch(null).default(null),
+  dmgType: zDmg.nullable().catch(null).default(null), // "This coin deals Slash damage"
+  sin: zSin.nullable().catch(null).default(null),
+  headsBonus: int(0, -100, 100), // +X% chance to land Heads
+  fixed: z.enum(COIN_FIXED).nullable().catch(null).default(null), // always Heads / always Tails
   effects: z.array(zEffect).catch([]).default([]),
 });
 export type Coin = z.infer<typeof zCoin>;
+export const newCoin = (kind: (typeof COIN_KINDS)[number] = "normal", extra: Partial<Coin> = {}): Coin => ({
+  kind, customType: null, power: null, op: null, mult: null, dmgType: null, sin: null, headsBonus: 0, fixed: null, effects: [], ...extra,
+});
+
+/** A reusable custom coin type (like a custom status, but for coins). */
+export const zCoinType = z.object({
+  id: id(),
+  kind: z.literal("coinType").catch("coinType").default("coinType"),
+  key: z.string().min(1).max(80).catch(() => "COIN_" + newId()).default(() => "COIN_" + newId()),
+  name: str("New Coin Type", 60),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).catch("#e0ae4d").default("#e0ae4d"),
+  description: str("", 1000),
+  clash: z.enum(COIN_KINDS).catch("normal").default("normal"), // what happens when it loses a Clash round
+  power: z.number().finite().transform(Math.round).pipe(z.number().min(-99).max(99)).nullable().catch(null).default(null),
+  op: z.enum(COIN_OPS).catch("add").default("add"),
+  mult: num(2, 0, 10),
+  dmgType: zDmg.nullable().catch(null).default(null),
+  sin: zSin.nullable().catch(null).default(null),
+  headsBonus: int(0, -100, 100),
+  fixed: z.enum(["none", ...COIN_FIXED]).catch("none").default("none"),
+  ignoreParalyze: bool(false),
+  crackedPower: int(1, 0, 99), // Coin Power of a cracked coin (the game uses 1)
+  effects: z.array(zEffect).catch([]).default([]),
+  notes: str("", 4000),
+  tags: z.array(z.string().max(40)).max(30).catch([]).default([]),
+  createdAt: num(0),
+  updatedAt: num(0),
+});
+export type CoinType = z.infer<typeof zCoinType>;
 
 export const zSkill = z.object({
   id: id(),
@@ -178,7 +222,7 @@ export const zSkill = z.object({
   dmgType: zDmg.catch("SLASH").default("SLASH"),
   basePower: int(4, -99, 999),
   coinPower: int(4, -99, 99),
-  coins: z.array(zCoin).min(1).max(12).catch([{ kind: "normal", effects: [] }]).default([{ kind: "normal", effects: [] }]),
+  coins: z.array(zCoin).min(1).max(12).catch(() => [newCoin()]).default(() => [newCoin()]),
   levelMod: int(0, -30, 30),
   atkWeight: int(1, 1, 12),
   amount: int(1, 0, 9), // copies in the skill deck (Sinners only)
@@ -423,12 +467,13 @@ export const zWorkspace = z.object({
   events: z.array(zGameEvent).catch([]).default([]),
   gifts: z.array(zGift).catch([]).default([]),
   statuses: z.array(zCustomStatus).catch([]).default([]),
+  coinTypes: z.array(zCoinType).catch([]).default([]),
   teams: z.array(zTeam).catch([]).default([]),
 });
 export type Workspace = z.infer<typeof zWorkspace>;
 
-export type ContentKind = "identity" | "ego" | "enemy" | "encounter" | "event" | "gift" | "status" | "team";
-export type AnyContent = Identity | Ego | Enemy | Encounter | GameEvent | Gift | CustomStatus | Team;
+export type ContentKind = "identity" | "ego" | "enemy" | "encounter" | "event" | "gift" | "status" | "coinType" | "team";
+export type AnyContent = Identity | Ego | Enemy | Encounter | GameEvent | Gift | CustomStatus | CoinType | Team;
 export const COLLECTION: Record<ContentKind, keyof Workspace> = {
   identity: "identities",
   ego: "egos",
@@ -437,6 +482,7 @@ export const COLLECTION: Record<ContentKind, keyof Workspace> = {
   event: "events",
   gift: "gifts",
   status: "statuses",
+  coinType: "coinTypes",
   team: "teams",
 };
 export const SCHEMA_BY_KIND = {
@@ -447,5 +493,6 @@ export const SCHEMA_BY_KIND = {
   event: zGameEvent,
   gift: zGift,
   status: zCustomStatus,
+  coinType: zCoinType,
   team: zTeam,
 } as const;

@@ -1,7 +1,7 @@
 // Runtime battle state. Everything is plain JSON so a battle can be saved to
 // storage mid-fight and resumed later, or sent to a Web Worker.
 import type { DmgType, Sin, Sinner } from "./constants";
-import type { Effect, ModStat, Passive, PhysResist, SinResist, Skill } from "../data/schema";
+import type { CoinType, Effect, ModStat, Passive, PhysResist, SinResist, Skill } from "../data/schema";
 import type { StatusDef, TremorType } from "./statuses";
 
 export type Side = "ally" | "enemy";
@@ -51,6 +51,7 @@ export interface BattleContent {
   egos: Record<string, CEgo>;
   statuses: Record<string, CStatusDef>; // custom statuses only (built-ins live in code)
   gifts: CGift[];
+  coinTypes?: Record<string, CoinType>; // custom coin types by key
 }
 
 export interface StatusInstance {

@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { GIFT_TIERS, SIN_LABEL, SINS } from "../../engine/constants";
+import { DMG_LABEL, DMG_TYPES, GIFT_TIERS, SIN_LABEL, SINS } from "../../engine/constants";
 import { BUILTIN_STATUS_LIST, KEYWORD_STATUSES } from "../../engine/statuses";
 import { checkOdds } from "../../engine/eventcheck";
 import * as R from "../../engine/rng";
 import {
   GIFT_KEYWORDS, OUTCOME_KINDS, newId, zEventChoice, zOutcome,
-  type CustomStatus, type Encounter, type EventChoice, type GameEvent, type Gift, type Outcome,
+  type CoinType, type CustomStatus, type Encounter, type EventChoice, type GameEvent, type Gift, type Outcome,
 } from "../../data/schema";
 import { Button, Check, NumberInput, Select, TextArea, TextInput } from "../../ui/controls";
 import { Notice, Section } from "../../ui/layout";
@@ -317,6 +317,8 @@ function EventTester({ ev }: { ev: GameEvent }) {
   const identities = useWorkspace((s) => s.ws.identities);
   const gifts = useWorkspace((s) => s.ws.gifts);
   const statusName = useStatusName();
+  const coinTypeList = useWorkspace((s) => s.ws.coinTypes);
+  const coinTypes = Object.fromEntries(coinTypeList.map((t) => [t.key, t]));
   const [teamId, setTeamId] = useState(teams[0]?.id ?? "");
   const [sp, setSp] = useState(0);
   const [result, setResult] = useState<string[] | null>(null);
@@ -330,7 +332,7 @@ function EventTester({ ev }: { ev: GameEvent }) {
     const lines: string[] = [];
     let ok = true;
     if (c.hasCheck && mem?.idn) {
-      const odds = checkOdds(c, mem.idn, sp, mem.m?.uptie ?? 4);
+      const odds = checkOdds(c, mem.idn, sp, mem.m?.uptie ?? 4, coinTypes);
       const rng = R.makeRng(R.randomSeed());
       ok = R.chance(rng, odds.chance);
       lines.push(`${sinner} uses ${odds.skillName} (${Math.round(odds.chance * 100)}% chance): ${ok ? "Success!" : "Failure."}`);
@@ -365,7 +367,7 @@ function EventTester({ ev }: { ev: GameEvent }) {
                 </thead>
                 <tbody>
                   {members.map(({ sinner, m, idn }) => {
-                    const odds = checkOdds(c, idn!, sp, m?.uptie ?? 4);
+                    const odds = checkOdds(c, idn!, sp, m?.uptie ?? 4, coinTypes);
                     return (
                       <tr key={sinner}>
                         <td>{sinner}</td>
@@ -423,6 +425,85 @@ export function EventEditor({ item: x, edit }: { item: GameEvent; edit: Edit<Gam
       )}
       <Section id="ev-test" title="Test this event" summary="success chances per Sinner">
         <EventTester ev={x} />
+      </Section>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------------
+export function CoinTypeEditor({ item: x, edit }: { item: CoinType; edit: Edit<CoinType> }) {
+  const ws = useWorkspace((s) => s.ws);
+  const usedBy: string[] = [];
+  const scan = (owner: string, skills: { name: string; coins: { customType: string | null }[] }[]) => {
+    for (const s of skills) if (s.coins.some((c) => c.customType === x.key)) usedBy.push(`${owner}: ${s.name}`);
+  };
+  for (const i of ws.identities) scan(i.name, [...i.skills, ...i.defense]);
+  for (const e of ws.egos) scan(e.name, [e.awakening, ...(e.corrosion ? [e.corrosion] : [])]);
+  for (const e of ws.enemies) scan(e.name, [...e.skills, ...e.parts.flatMap((p) => p.skills)]);
+  return (
+    <div className="stack">
+      <Section id="ct-basics" title="Basics" summary={x.clash === "normal" ? "breaks when it loses" : x.clash}>
+        <div className="fields">
+          <TextInput label="Coin type name" className="span-2" value={x.name} onChange={(v) => edit((d) => void (d.name = v), "name")} />
+          <div className="field">
+            <label className="label" htmlFor={`ct-color-${x.id}`}>
+              Colour
+            </label>
+            <input id={`ct-color-${x.id}`} type="color" className="input" style={{ padding: 4 }} value={x.color} onChange={(e) => edit((d) => void (d.color = e.target.value), "color")} />
+          </div>
+          <TextArea label="Description" className="full" value={x.description} onChange={(v) => edit((d) => void (d.description = v), "desc")} rows={2} />
+        </div>
+      </Section>
+      <Section id="ct-clash" title="In a Clash" summary={x.clash}>
+        <div className="fields">
+          <Select
+            label="When it loses a Clash round"
+            className="span-2"
+            value={x.clash}
+            onChange={(v) => edit((d) => void (d.clash = v))}
+            options={[
+              { value: "normal", label: "Breaks (normal coin)" },
+              { value: "unbreakable", label: "Cracks, then still hits (Unbreakable)" },
+              { value: "excision", label: "Cracks, and destroys enemy Unbreakable coins (Excision)" },
+            ]}
+          />
+          {x.clash !== "normal" && (
+            <NumberInput label="Coin Power when cracked" value={x.crackedPower} onChange={(n) => edit((d) => void (d.crackedPower = n))} min={0} max={99} hint="The game uses 1 (−1 for minus coins)." />
+          )}
+          <Check label="Ignores Paralyze" checked={x.ignoreParalyze} onChange={(v) => edit((d) => void (d.ignoreParalyze = v))} />
+        </div>
+      </Section>
+      <Section id="ct-power" title="Power & flips" summary={`${x.op === "multiply" ? `×${x.mult}` : x.power === null ? "skill's Coin Power" : `Coin Power ${x.power}`}${x.fixed !== "none" ? ` · always ${x.fixed}` : ""}`}>
+        <div className="fields">
+          <Select label="On Heads" value={x.op} onChange={(v) => edit((d) => void (d.op = v))} options={[{ value: "add", label: "Add Coin Power" }, { value: "multiply", label: "Multiply the skill's power" }]} />
+          {x.op === "multiply" ? (
+            <NumberInput label="Multiplier" value={x.mult} onChange={(n) => edit((d) => void (d.mult = n), "mult")} min={0} max={10} step={0.25} decimals={2} />
+          ) : (
+            <>
+              <Check label="Own Coin Power" checked={x.power !== null} onChange={(on) => edit((d) => void (d.power = on ? 4 : null))} hint={x.power === null ? "Uses the Coin Power of the skill it's on." : undefined} />
+              {x.power !== null && <NumberInput label="Coin Power" value={x.power} onChange={(n) => edit((d) => void (d.power = n), "power")} min={-99} max={99} />}
+            </>
+          )}
+          <NumberInput label="Heads chance bonus (%)" value={x.headsBonus} onChange={(n) => edit((d) => void (d.headsBonus = n), "hb")} min={-100} max={100} />
+          <Select label="Result" value={x.fixed} onChange={(v) => edit((d) => void (d.fixed = v))} options={[{ value: "none", label: "Random (50 + SP)" }, { value: "heads", label: "Always Heads" }, { value: "tails", label: "Always Tails" }]} />
+          <Select label="Damage type" value={x.dmgType ?? ""} onChange={(v) => edit((d) => void (d.dmgType = (v || null) as CoinType["dmgType"]))} options={[{ value: "", label: "Same as the skill" }, ...DMG_TYPES.map((t) => ({ value: t, label: DMG_LABEL[t] }))]} />
+          <Select label="Sin affinity" value={x.sin ?? ""} onChange={(v) => edit((d) => void (d.sin = (v || null) as CoinType["sin"]))} options={[{ value: "", label: "Same as the skill" }, ...SINS.map((s) => ({ value: s, label: SIN_LABEL[s] }))]} />
+        </div>
+        <p className="small muted">A coin can still override any of these for itself (Customize on the coin).</p>
+      </Section>
+      <Section id="ct-rules" title="Rules every coin of this type has" summary={`${x.effects.length} rule${x.effects.length === 1 ? "" : "s"}`}>
+        <RulesEditor scope="coin" effects={x.effects} edit={(fn, k) => edit((d) => fn(d.effects), k)} emptyText="No rules. Add e.g. '[On Hit] Inflict 1 Burn' and every coin of this type will do it." />
+      </Section>
+      <Section id="ct-used" title="Used by" summary={`${usedBy.length} skill${usedBy.length === 1 ? "" : "s"}`} defaultOpen={false}>
+        {usedBy.length ? (
+          <ul style={{ margin: 0 }}>
+            {usedBy.map((u) => (
+              <li key={u}>{u}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted small">No skill uses this coin type yet. Pick it in a skill's coin list.</p>
+        )}
       </Section>
     </div>
   );

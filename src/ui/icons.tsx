@@ -33,6 +33,7 @@ const PATHS: Record<string, string> = {
   list: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
   clock: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2",
   star: "M12 2l3 7 7 .6-5.3 4.7L18.3 22 12 18l-6.3 4 1.6-7.7L2 9.6 9 9z",
+  coin: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z",
 };
 
 export function Icon({ name, size = 20, label, className }: { name: keyof typeof PATHS | string; size?: number; label?: string; className?: string }) {

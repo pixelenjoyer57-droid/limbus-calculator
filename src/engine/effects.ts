@@ -2,7 +2,7 @@
 // This module evaluates quantities/conditions, picks units, runs actions and
 // collects numeric modifiers ("+20% damage", "Coin Power +1") for the combat code.
 import type { Action, Condition, Effect, ModStat, Quantity, Trigger, Value, Who } from "../data/schema";
-import { SINS, type Sin } from "./constants";
+import { SINS, type DmgType, type Sin } from "./constants";
 import * as R from "./rng";
 import {
   addStatus, bodies, core, fmt, hasStatus, log, negativeCount, opposite, positiveCount, reduceStatus,
@@ -16,10 +16,21 @@ import type { TremorType } from "./statuses";
 
 export interface CoinState {
   kind: "normal" | "unbreakable" | "excision";
-  effects: Effect[];
+  effects: Effect[]; // the coin's own rules
+  typeEffects: Effect[]; // rules of its custom coin type
   index: number; // 1-based position in the skill
   destroyed: boolean;
   cracked: boolean;
+  power: number | null; // own Coin Power (null = the skill's)
+  op: "add" | "multiply";
+  mult: number;
+  dmgType: DmgType | null;
+  sin: Sin | null;
+  headsBonus: number; // percentage points
+  fixed: "heads" | "tails" | null;
+  ignoreParalyze: boolean;
+  crackedPower: number;
+  typeName?: string;
 }
 
 export interface CoinRun {
@@ -399,8 +410,11 @@ export function fireSkill(trigger: Trigger, ctx: Ctx) {
   const sources: EffectSource[] = [];
   for (const e of skill.effects) if (e.trigger === trigger) sources.push({ effect: e, label: skill.name, key: `${use.user.uid}:${skill.key}:${e.id}` });
   if (ctx.coin) {
-    for (const e of ctx.coin.coin.effects)
+    const c = ctx.coin.coin;
+    for (const e of c.effects)
       if (e.trigger === trigger) sources.push({ effect: e, label: `${skill.name} coin ${ctx.coin.index}`, key: `${use.user.uid}:${skill.key}:c${ctx.coin.index}:${e.id}` });
+    for (const e of c.typeEffects ?? [])
+      if (e.trigger === trigger) sources.push({ effect: e, label: `${c.typeName ?? "Coin type"} (coin ${ctx.coin.index})`, key: `${use.user.uid}:${skill.key}:c${ctx.coin.index}:t:${e.id}` });
   }
   for (const s of sources) runSource(s, { ...ctx, skill: ctx.skill ?? skill });
 }
@@ -606,7 +620,10 @@ export function collectMods(stat: ModStat, ctx: Ctx, wantStatus?: string): ModPa
   if (own && ctx.use) {
     const sk = ctx.use.skill;
     for (const e of sk.effects) if (e.trigger === "always") always.push({ effect: e, label: sk.name, key: "" });
-    if (ctx.coin) for (const e of ctx.coin.coin.effects) if (e.trigger === "always") always.push({ effect: e, label: `${sk.name} coin ${ctx.coin.index}`, key: "" });
+    if (ctx.coin) {
+      for (const e of ctx.coin.coin.effects) if (e.trigger === "always") always.push({ effect: e, label: `${sk.name} coin ${ctx.coin.index}`, key: "" });
+      for (const e of ctx.coin.coin.typeEffects ?? []) if (e.trigger === "always") always.push({ effect: e, label: `${ctx.coin.coin.typeName ?? "Coin type"} (coin ${ctx.coin.index})`, key: "" });
+    }
   }
   for (const src of always) {
     if (!src.effect.actions.some((a) => a.kind === "mod" && a.stat === stat)) continue;

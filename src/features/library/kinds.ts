@@ -8,6 +8,7 @@ export const KIND_INFO: Record<ContentKind, { label: string; plural: string; slu
   event: { label: "Event", plural: "Events", slug: "events", icon: "dice", blurb: "Choice events with skill checks" },
   gift: { label: "E.G.O Gift", plural: "E.G.O Gifts", slug: "gifts", icon: "shield", blurb: "Team-wide passive items" },
   status: { label: "Custom status", plural: "Custom statuses", slug: "statuses", icon: "list", blurb: "Your own keywords and effects" },
+  coinType: { label: "Coin type", plural: "Coin types", slug: "coins", icon: "coin", blurb: "Your own coin rules" },
   team: { label: "Team", plural: "Teams", slug: "teams", icon: "team", blurb: "Loadouts" },
 };
 

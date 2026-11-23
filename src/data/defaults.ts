@@ -1,8 +1,8 @@
 // Factories for new content, quick-start templates and the starter workspace.
 import { DEFAULT_DECK_AMOUNT, SINNERS, SINS, type Sinner } from "../engine/constants";
 import {
-  newId, zCustomStatus, zEgo, zEncounter, zEnemy, zEventChoice, zGameEvent, zGift, zIdentity, zOutcome, zPassive,
-  zSkill, zTeam, zWorkspace, val, type CustomStatus, type Ego, type Encounter, type Enemy, type GameEvent, type Gift,
+  newCoin, newId, zCoinType, zCustomStatus, zEgo, zEncounter, zEnemy, zEventChoice, zGameEvent, zGift, zIdentity, zOutcome, zPassive,
+  zSkill, zTeam, zWorkspace, val, type CoinType, type CustomStatus, type Ego, type Encounter, type Enemy, type GameEvent, type Gift,
   type Identity, type Skill, type Team, type Workspace,
 } from "./schema";
 import { act, cond, eff, give, inflict, mod, onCoin, per, q, skill } from "./build";
@@ -21,9 +21,9 @@ export function newIdentity(partial: Partial<Identity> = {}): Identity {
       name: "New Identity",
       staggerThresholds: [65, 35, 15],
       skills: [
-        newSkill({ name: "Skill 1", sin: "WRATH", dmgType: "SLASH", basePower: 4, coinPower: 4, coins: [{ kind: "normal", effects: [] }, { kind: "normal", effects: [] }], amount: DEFAULT_DECK_AMOUNT.S1 }),
-        newSkill({ name: "Skill 2", sin: "LUST", dmgType: "PIERCE", basePower: 5, coinPower: 4, coins: [{ kind: "normal", effects: [] }, { kind: "normal", effects: [] }], amount: DEFAULT_DECK_AMOUNT.S2 }),
-        newSkill({ name: "Skill 3", sin: "PRIDE", dmgType: "BLUNT", basePower: 6, coinPower: 3, coins: [{ kind: "normal", effects: [] }, { kind: "normal", effects: [] }, { kind: "normal", effects: [] }], amount: DEFAULT_DECK_AMOUNT.S3 }),
+        newSkill({ name: "Skill 1", sin: "WRATH", dmgType: "SLASH", basePower: 4, coinPower: 4, coins: [newCoin(), newCoin()], amount: DEFAULT_DECK_AMOUNT.S1 }),
+        newSkill({ name: "Skill 2", sin: "LUST", dmgType: "PIERCE", basePower: 5, coinPower: 4, coins: [newCoin(), newCoin()], amount: DEFAULT_DECK_AMOUNT.S2 }),
+        newSkill({ name: "Skill 3", sin: "PRIDE", dmgType: "BLUNT", basePower: 6, coinPower: 3, coins: [newCoin(), newCoin(), newCoin()], amount: DEFAULT_DECK_AMOUNT.S3 }),
       ],
       defense: [newSkill({ name: "Guard", kind: "guard", sin: null, basePower: 7, coinPower: 3, levelMod: -2, amount: 0 })],
       passives: [
@@ -43,7 +43,7 @@ export function newEgo(partial: Partial<Ego> = {}): Ego {
       grade: "TETH",
       cost: { ...Object.fromEntries(SINS.map((s) => [s, 0])), WRATH: 3 },
       spCost: 15,
-      awakening: newSkill({ name: "Awakening", sin: "WRATH", dmgType: "SLASH", basePower: 14, coinPower: 6, coins: [{ kind: "normal", effects: [] }], amount: 0 }),
+      awakening: newSkill({ name: "Awakening", sin: "WRATH", dmgType: "SLASH", basePower: 14, coinPower: 6, coins: [newCoin()], amount: 0 }),
       corrosion: null,
       passive: null,
       ...partial,
@@ -57,7 +57,7 @@ export function newEnemy(partial: Partial<Enemy> = {}): Enemy {
       id: newId(),
       name: "New Enemy",
       staggerThresholds: [50],
-      skills: [newSkill({ name: "Strike", sin: "WRATH", dmgType: "SLASH", basePower: 4, coinPower: 4, coins: [{ kind: "normal", effects: [] }, { kind: "normal", effects: [] }], amount: 0 })],
+      skills: [newSkill({ name: "Strike", sin: "WRATH", dmgType: "SLASH", basePower: 4, coinPower: 4, coins: [newCoin(), newCoin()], amount: 0 })],
       ...partial,
     }),
   );
@@ -73,6 +73,10 @@ export function newGift(partial: Partial<Gift> = {}): Gift {
 
 export function newStatus(partial: Partial<CustomStatus> = {}): CustomStatus {
   return stamp(zCustomStatus.parse({ id: newId(), key: "CUSTOM_" + newId().replace(/-/g, "").slice(0, 10).toUpperCase(), ...partial }));
+}
+
+export function newCoinType(partial: Partial<CoinType> = {}): CoinType {
+  return stamp(zCoinType.parse({ id: newId(), key: "COIN_" + newId().replace(/-/g, "").slice(0, 10).toUpperCase(), ...partial }));
 }
 
 export function newEvent(partial: Partial<GameEvent> = {}): GameEvent {
@@ -318,6 +322,20 @@ function lantern(): Enemy {
 export function sampleWorkspace(): Workspace {
   const ws = emptyWorkspace("Example Workshop");
   const ids = [burnIdentity("Yi Sang"), bleedIdentity("Rodion"), poiseIdentity("Outis"), tremorIdentity("Ishmael")];
+  const ember = newCoinType({
+    name: "Ember Coin",
+    color: "#ff7a3d",
+    clash: "unbreakable",
+    crackedPower: 2,
+    headsBonus: 10,
+    description: "Example custom coin: cracks instead of breaking (hits for 2 when cracked), +10% Heads, and every hit inflicts 1 Burn.",
+    effects: [eff("onHit", [inflict("BURN", 1)])],
+  });
+  ws.coinTypes.push(ember);
+  // Cinder Courier's Skill 3 ends on an Ember Coin
+  const pyreLast = ids[0].skills[2].coins[2];
+  pyreLast.customType = ember.key;
+  pyreLast.kind = "unbreakable";
   ws.identities.push(...ids);
   const scorch = newStatus({
     name: "Scorchmark",

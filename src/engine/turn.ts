@@ -11,7 +11,7 @@ import { collectMods, fireSkill, fireTeam, fireUnit, passiveRequirementMet, sumP
 import {
   changeSp, clashAndAttack, dealFixedDamage, newUse, onUse, readiedFor, runAttack, setReadied, type Readied,
 } from "./combat";
-import { clashOdds, type ClashSide } from "./odds";
+import { clashOdds, expectedPower as meanPower, powerDist, staticCoins, type ClashSide } from "./odds";
 import { spawnWave } from "./setup";
 import { corrosionChance } from "./constants";
 
@@ -283,17 +283,15 @@ function maybeUseEgo(b: BattleState, a: PlannedAction, u: UnitState) {
   }
 }
 
-function expectedPower(_b: BattleState, u: UnitState, s: CSkill): number {
-  const p = headsChance(u.sp, u.hasSanity);
-  return Math.max(0, s.basePower + s.coinPower * s.coins.length * p) * Math.max(1, s.coins.length);
+function expectedPower(b: BattleState, u: UnitState, s: CSkill): number {
+  const coins = staticCoins(s, headsChance(u.sp, u.hasSanity), b.content.coinTypes ?? {});
+  return meanPower(powerDist(s.basePower, coins)) * Math.max(1, s.coins.length);
 }
 
 function sideFor(b: BattleState, u: UnitState, s: CSkill, bonus: number): ClashSide {
   return {
     base: s.basePower + statusValue(b, u, "BASE_POWER_UP"),
-    coinPower: s.coinPower,
-    coins: s.coins.length,
-    p: headsChance(u.sp, u.hasSanity),
+    coins: staticCoins(s, headsChance(u.sp, u.hasSanity), b.content.coinTypes ?? {}),
     bonus: bonus + statusValue(b, u, "CLASH_POWER_UP") - statusValue(b, u, "CLASH_POWER_DOWN"),
     finalBonus: statusValue(b, u, "POWER_UP") - statusValue(b, u, "POWER_DOWN") + (s.kind === "attack" ? statusValue(b, u, "ATTACK_POWER_UP") - statusValue(b, u, "ATTACK_POWER_DOWN") : 0),
   };

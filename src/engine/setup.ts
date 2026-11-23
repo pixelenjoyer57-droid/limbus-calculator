@@ -273,6 +273,10 @@ export function enemyUnits(content: BattleContent, e: Enemy, level: number, uidB
   return [core, ...parts];
 }
 
+export function coinTypeMap(ws: Workspace) {
+  return Object.fromEntries((ws.coinTypes ?? []).map((t) => [t.key, t]));
+}
+
 export function giftEffects(g: Gift, level: number) {
   if (level >= 2 && g.plus2) return g.plus2;
   if (level >= 1 && g.plus1) return g.plus1;
@@ -282,7 +286,7 @@ export function giftEffects(g: Gift, level: number) {
 export function createBattle(setup: BattleSetup): { battle: BattleState; warnings: string[] } {
   const ws = setup.workspace;
   const warnings: string[] = [];
-  const content: BattleContent = { skills: {}, passives: {}, egos: {}, statuses: {}, gifts: [] };
+  const content: BattleContent = { skills: {}, passives: {}, egos: {}, statuses: {}, gifts: [], coinTypes: coinTypeMap(ws) };
   for (const cs of ws.statuses) {
     if (BUILTIN_STATUSES[cs.key]) continue;
     content.statuses[cs.key] = compileStatus(cs);

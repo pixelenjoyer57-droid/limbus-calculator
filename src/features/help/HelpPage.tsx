@@ -8,6 +8,7 @@ const WIKI = "https://limbuscompany.wiki.gg/wiki/";
 const SECTIONS = [
   ["damage", "Damage formula"],
   ["clash", "Clashes"],
+  ["coins", "Coins & custom coins"],
   ["sanity", "Sanity (SP)"],
   ["stagger", "Stagger"],
   ["turn", "A turn, step by step"],
@@ -92,6 +93,18 @@ export default function HelpPage({ section }: { section?: string }) {
           <li><strong>Unbreakable coins</strong> crack instead of breaking. After losing, cracked coins still hit with Coin Power fixed to 1. <strong>Excision coins</strong> also destroy Unbreakable coins.</li>
           <li>A Sinner can redirect an enemy attack into a Clash if their Speed is higher, or if that attack targets them.</li>
           <li>The Clash odds shown while planning are exact for skills without conditional effects; the calculator runs the full engine.</li>
+        </ul>
+        <Src page="Skills" />
+      </Card>
+
+      <Card>
+        <h2 id="help-coins">Coins &amp; custom coins</h2>
+        <ul>
+          <li><strong>Normal coins</strong> break when they lose a Clash round. <strong>Unbreakable</strong> coins crack instead and still hit after a lost Clash with Coin Power fixed to 1. <strong>Excision</strong> coins also destroy enemy Unbreakable coins.</li>
+          <li>Every coin can be customised: its own Coin Power, damage type, sin, a Heads chance bonus, or always Heads / always Tails. A coin's own damage type and sin decide its resistances and typed buffs; resources and Resonance still follow the skill.</li>
+          <li><strong>Multiply coins</strong> (named in the game files, unused by current kits): Final Power = (Base + every Heads add-coin) × every Heads multiplier, rounded down. Paralyze turns a multiplier into ×1.</li>
+          <li><strong>Coin types</strong> (Builder → Coin types) are reusable custom coins: pick how they behave in a Clash, their power when cracked, whether Paralyze affects them, and rules every coin of that type carries. Any coin can still override a type's settings.</li>
+          <li>Clash odds, power ranges and event checks all account for custom coins; the calculator and simulator run them through the full engine.</li>
         </ul>
         <Src page="Skills" />
       </Card>

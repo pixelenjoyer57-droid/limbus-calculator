@@ -2,7 +2,8 @@
 
 A browser app for building **custom Limbus Company content** and testing it against the game's real combat rules:
 
-- **Builder** for Identities, E.G.O, enemies (including multi-part Abnormalities), encounters (waves), choice events with Skill Checks, E.G.O Gifts (with + / ++ versions) and your own custom status effects.
+- **Builder** for Identities, E.G.O, enemies (including multi-part Abnormalities), encounters (waves), choice events with Skill Checks, E.G.O Gifts (with + / ++ versions), your own custom status effects and **custom coins**.
+- **Custom coins**: any coin can have its own Coin Power, damage type, sin, Heads chance or fixed result, or multiply the power on Heads; reusable **coin types** add Clash behaviour (normal / unbreakable / excision), cracked power, Paralyze immunity and rules carried by every coin of that type.
 - **Rule builder** for effects: "When [On Hit] → only if [target has 5+ Burn] → do [Inflict 2 Burn]". Every rule shows game-style text live, and the simulator actually runs it.
 - **Damage calculator**: one Clash or one-sided attack, run thousands of times through the real engine, with best/worst-case breakdowns that show every term of the damage formula for each coin.
 - **Battle simulator**: play a fight turn by turn (pick skills and targets, see Clash odds and every coin flip), auto-play it, or run hundreds of fights for win rates and per-unit averages.

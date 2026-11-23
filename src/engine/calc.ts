@@ -5,7 +5,7 @@ import { SINS, type EgoGrade, type Sin } from "./constants";
 import * as R from "./rng";
 import type { Team, Workspace } from "../data/schema";
 import type { BattleState, BattleSettings, LogEntry, PlannedAction, UnitState } from "./types";
-import { compileStatus, enemyUnits, giftEffects, identityUnit, zeroSins } from "./setup";
+import { coinTypeMap, compileStatus, enemyUnits, giftEffects, identityUnit, zeroSins } from "./setup";
 import { endTurn, resolveCombat } from "./turn";
 import type { HitRecord } from "./combat";
 import { core, stat } from "./state";
@@ -146,7 +146,7 @@ export function buildExchange(input: CalcInput): { base: BattleState; warnings: 
     phase: "planning",
     units: [],
     resources: { ally: { ...zeroSins(), ...Object.fromEntries(SINS.map((s) => [s, 99])) } as Record<Sin, number>, enemy: zeroSins() },
-    content: { skills: {}, passives: {}, egos: {}, statuses: {}, gifts: [] },
+    content: { skills: {}, passives: {}, egos: {}, statuses: {}, gifts: [], coinTypes: coinTypeMap(ws) },
     waves: [[]],
     waveIndex: 0,
     enemyTemplates: {},

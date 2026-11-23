@@ -7,7 +7,7 @@ import { runToEnd, resolveTurn, forecast } from "../src/engine/turn";
 import { importAny } from "../src/data/migrate";
 import { runBatch } from "../src/engine/batch";
 import type { Workspace } from "../src/data/schema";
-import { val } from "../src/data/schema";
+import { newCoin, val } from "../src/data/schema";
 
 const side = (kind: "identity" | "enemy", id: string, extra: Partial<Combatant> = {}): Combatant => ({
   kind, id, level: 0, uptie: 4, egos: {}, sp: 0, hpPct: 100, stagger: 0, speed: 5, statuses: [], skill: "", part: 0, resonance: 0, ...extra,
@@ -112,7 +112,7 @@ describe("clashes", () => {
 
   it("the losing Unbreakable coins still attack with Coin Power fixed to 1", () => {
     const { ws, attacker } = setup();
-    attacker.skills[0] = skill("Weak but stubborn", "WRATH", "SLASH", 2, 3, 2, { coins: [{ kind: "unbreakable", effects: [] }, { kind: "unbreakable", effects: [] }] });
+    attacker.skills[0] = skill("Weak but stubborn", "WRATH", "SLASH", 2, 3, 2, { coins: [newCoin("unbreakable"), newCoin("unbreakable")] });
     const foe = newEnemy({ name: "Foe", level: 65, hp: 500, staggerThresholds: [], skills: [skill("Wall", "ENVY", "BLUNT", 30, 0, 1)] });
     ws.enemies.push(foe);
     const r = calc(ws, side("identity", attacker.id, { skill: "S1" }), side("enemy", foe.id, { skill: "K0" }), "clash");
@@ -256,5 +256,72 @@ describe("safety", () => {
     const f = (r: typeof on) => r.scenarios.find((s) => s.name === "All Heads, no crit")!.hits.map((h) => h.final);
     expect(f(off)).toEqual([11, 17]);
     expect(f(on)).toEqual([23, 34]); // x2 dynamic
+  });
+});
+
+describe("custom coins", () => {
+  const heads = (r: ReturnType<typeof calc>) => r.scenarios.find((s) => s.name === "All Heads, no crit")!.hits;
+  const tails = (r: ReturnType<typeof calc>) => r.scenarios.find((s) => s.name === "All Tails")!.hits;
+
+  it("a coin can have its own Coin Power", () => {
+    const { ws, attacker, dummy } = setup();
+    attacker.skills[0] = skill("Big finish", "WRATH", "SLASH", 4, 4, 2, { coins: [newCoin(), newCoin("normal", { power: 10 })] });
+    const r = calc(ws, side("identity", attacker.id, { skill: "S1" }), side("enemy", dummy.id));
+    expect(heads(r).map((h) => h.roll)).toEqual([8, 18]);
+    expect(heads(r).map((h) => h.final)).toEqual([11, 26]);
+  });
+
+  it("multiply coins multiply the power on Heads", () => {
+    const { ws, attacker, dummy } = setup();
+    attacker.skills[0] = skill("Doubler", "WRATH", "SLASH", 4, 4, 2, { coins: [newCoin(), newCoin("normal", { op: "multiply", mult: 2 })] });
+    const r = calc(ws, side("identity", attacker.id, { skill: "S1" }), side("enemy", dummy.id));
+    expect(heads(r).map((h) => h.roll)).toEqual([8, 16]);
+    expect(tails(r).map((h) => h.roll)).toEqual([4, 4]);
+  });
+
+  it("a coin fixed to Heads lands Heads even when everything else lands Tails", () => {
+    const { ws, attacker, dummy } = setup();
+    attacker.skills[0] = skill("Sure thing", "WRATH", "SLASH", 4, 4, 2, { coins: [newCoin(), newCoin("normal", { fixed: "heads" })] });
+    const r = calc(ws, side("identity", attacker.id, { skill: "S1" }), side("enemy", dummy.id));
+    expect(tails(r).map((h) => h.roll)).toEqual([4, 8]);
+  });
+
+  it("a coin can deal its own damage type", () => {
+    const { ws, attacker, dummy } = setup();
+    dummy.resist = { SLASH: 1, PIERCE: 2, BLUNT: 1 };
+    attacker.skills[0] = skill("Mixed", "WRATH", "SLASH", 4, 4, 2, { coins: [newCoin(), newCoin("normal", { dmgType: "PIERCE" })] });
+    const r = calc(ws, side("identity", attacker.id, { skill: "S1" }), side("enemy", dummy.id));
+    // coin 1 Slash x1: 8 * 1.444 = 11; coin 2 Pierce x2: 12 * 2.444 = 29
+    expect(heads(r).map((h) => h.final)).toEqual([11, 29]);
+  });
+
+  it("custom coin types set Clash behaviour, cracked power and carry their own rules", () => {
+    const { ws, attacker } = setup();
+    ws.coinTypes.push({
+      id: "ct1", kind: "coinType", key: "COIN_EMBER", name: "Ember Coin", color: "#ff7a3d", description: "", clash: "unbreakable",
+      power: null, op: "add", mult: 2, dmgType: null, sin: null, headsBonus: 0, fixed: "none", ignoreParalyze: false, crackedPower: 3,
+      effects: [eff("onHit", [inflict("BURN", 1)])], notes: "", tags: [], createdAt: 0, updatedAt: 0,
+    });
+    attacker.skills[0] = skill("Stubborn", "WRATH", "SLASH", 2, 3, 2, { coins: [newCoin("normal", { customType: "COIN_EMBER" }), newCoin("normal", { customType: "COIN_EMBER" })] });
+    const foe = newEnemy({ name: "Wall", level: 65, hp: 500, staggerThresholds: [], skills: [skill("Wall", "ENVY", "BLUNT", 30, 0, 1)] });
+    ws.enemies.push(foe);
+    const r = calc(ws, side("identity", attacker.id, { skill: "S1" }), side("enemy", foe.id, { skill: "K0" }), "clash");
+    expect(r.defenderWin).toBe(1); // it loses the Clash...
+    const best = r.scenarios.find((s) => s.name === "Best case")!;
+    const own = best.hits.filter((h) => h.attacker === "Tester");
+    expect(own.map((h) => h.roll)).toEqual([5, 8]); // ...but cracked coins still hit with Coin Power 3
+    expect(best.log.some((l) => l.text.includes("Burn") && l.text.includes("Ember Coin"))).toBe(true);
+  });
+
+  it("exact Clash odds handle different coins", async () => {
+    const { clashOdds, powerDist } = await import("../src/engine/odds");
+    const same = clashOdds({ base: 4, coinPower: 4, coins: 3, p: 0.6, bonus: 0 }, { base: 6, coinPower: 3, coins: 2, p: 0.5, bonus: 1 });
+    const spec = clashOdds(
+      { base: 4, coins: [0, 1, 2].map(() => ({ p: 0.6, op: "add" as const, value: 4 })), bonus: 0 },
+      { base: 6, coins: [0, 1].map(() => ({ p: 0.5, op: "add" as const, value: 3 })), bonus: 1 },
+    );
+    expect(spec.win).toBeCloseTo(same.win, 10);
+    const d = powerDist(4, [{ p: 0.5, op: "add", value: 4 }, { p: 1, op: "multiply", value: 2 }]);
+    expect([...d.entries()].sort()).toEqual([[16, 0.5], [8, 0.5]].sort());
   });
 });

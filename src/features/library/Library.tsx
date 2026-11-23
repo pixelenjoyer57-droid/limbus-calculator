@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { produce, type Draft } from "immer";
-import { COLLECTION, type AnyContent, type ContentKind, type Ego, type Encounter, type Enemy, type GameEvent, type Gift, type Identity, type CustomStatus } from "../../data/schema";
+import { COLLECTION, type AnyContent, type CoinType, type ContentKind, type Ego, type Encounter, type Enemy, type GameEvent, type Gift, type Identity, type CustomStatus } from "../../data/schema";
 import {
-  ENEMY_TEMPLATES, IDENTITY_TEMPLATES, newEgo, newEncounter, newEnemy, newEvent, newGift, newIdentity, newStatus,
+  ENEMY_TEMPLATES, IDENTITY_TEMPLATES, newCoinType, newEgo, newEncounter, newEnemy, newEvent, newGift, newIdentity, newStatus,
 } from "../../data/defaults";
 import { duplicateItem, encodeShareCode, itemsPayload } from "../../data/migrate";
 import { RARITY_LABEL } from "../../engine/constants";
@@ -17,10 +17,10 @@ import { Dialog, EmptyState, Tabs } from "../../ui/layout";
 import { GradeBadge } from "../../ui/game";
 import { KIND_INFO, SLUG_TO_KIND } from "./kinds";
 import { EgoEditor, EnemyEditor, IdentityEditor, identityWarnings } from "./editors";
-import { EncounterEditor, EventEditor, GiftEditor, StatusEditor } from "./editors2";
+import { CoinTypeEditor, EncounterEditor, EventEditor, GiftEditor, StatusEditor } from "./editors2";
 import type { Edit } from "./rules";
 
-const LIB_KINDS: ContentKind[] = ["identity", "ego", "enemy", "encounter", "event", "gift", "status"];
+const LIB_KINDS: ContentKind[] = ["identity", "ego", "enemy", "encounter", "event", "gift", "status", "coinType"];
 
 function subtitle(item: AnyContent): string {
   switch (item.kind) {
@@ -51,6 +51,10 @@ function subtitle(item: AnyContent): string {
       const x = item as CustomStatus;
       return `${x.polarity} · ${x.mode === "pc" ? "Potency + Count" : "single value"}`;
     }
+    case "coinType": {
+      const x = item as CoinType;
+      return `${x.clash}${x.op === "multiply" ? ` · ×${x.mult} on Heads` : x.power !== null ? ` · Coin Power ${x.power}` : ""}${x.fixed !== "none" ? ` · always ${x.fixed}` : ""}`;
+    }
     default:
       return "";
   }
@@ -72,6 +76,8 @@ function makeNew(kind: ContentKind): AnyContent {
       return newGift();
     case "status":
       return newStatus();
+    case "coinType":
+      return newCoinType();
     default:
       return newIdentity();
   }
@@ -184,6 +190,7 @@ export default function Library({ kindSlug, itemId }: { kindSlug?: string; itemI
       kind === "encounter" ? <EncounterEditor {...props} /> :
       kind === "event" ? <EventEditor {...props} /> :
       kind === "gift" ? <GiftEditor {...props} /> :
+      kind === "coinType" ? <CoinTypeEditor {...props} /> :
       <StatusEditor {...props} />;
   }
 

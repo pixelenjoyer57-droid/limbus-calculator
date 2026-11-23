@@ -1,6 +1,6 @@
 // Turns effect rules into game-style text, e.g. "[On Hit] Inflict 2 Burn".
 import { DMG_LABEL, SIN_LABEL } from "./constants";
-import type { Action, Condition, Effect, Quantity, Trigger, Value, Who } from "../data/schema";
+import type { Action, Coin, CoinType, Condition, Effect, Quantity, Trigger, Value, Who } from "../data/schema";
 import { BUILTIN_STATUSES, TREMOR_TYPE_INFO } from "./statuses";
 
 export type NameOf = (statusKey: string) => string;
@@ -346,4 +346,29 @@ export function describeEffect(e: Effect, nameOf: NameOf = builtinName): string 
 /** True when an effect contains something the simulator does not run (only notes). */
 export function isNoteOnly(e: Effect): boolean {
   return e.actions.length > 0 && e.actions.every((a) => a.kind === "note");
+}
+
+/** Short labels for what makes a coin special, e.g. ["Unbreakable", "Coin Power +10", "Pierce"]. */
+export function coinTraits(c: Coin, skillCoinPower: number, coinTypes: Record<string, CoinType> = {}): string[] {
+  const t = c.customType ? coinTypes[c.customType] : undefined;
+  const out: string[] = [];
+  if (t) out.push(t.name || "Custom coin");
+  else if (c.kind !== "normal") out.push(c.kind === "unbreakable" ? "Unbreakable" : "Excision");
+  const op = c.op ?? t?.op ?? "add";
+  if (op === "multiply") out.push(`×${c.mult ?? t?.mult ?? 2} power on Heads`);
+  else {
+    const p = c.power ?? t?.power;
+    if (p !== null && p !== undefined && p !== skillCoinPower) out.push(`Coin Power ${p >= 0 ? "+" : ""}${p}`);
+  }
+  const dmg = c.dmgType ?? t?.dmgType;
+  if (dmg) out.push(`${DMG_LABEL[dmg]} damage`);
+  const sin = c.sin ?? t?.sin;
+  if (sin) out.push(SIN_LABEL[sin]);
+  const hb = c.headsBonus + (t?.headsBonus ?? 0);
+  if (hb) out.push(`${hb > 0 ? "+" : ""}${hb}% Heads`);
+  const fixed = c.fixed ?? (t && t.fixed !== "none" ? t.fixed : null);
+  if (fixed) out.push(`always ${fixed === "heads" ? "Heads" : "Tails"}`);
+  if (t?.ignoreParalyze) out.push("ignores Paralyze");
+  if (t && t.clash !== "normal" && t.crackedPower !== 1) out.push(`cracked Power ${t.crackedPower}`);
+  return out;
 }

@@ -1,7 +1,7 @@
 // Tiny builders so templates and tests can describe content in one line each.
 import type { DmgType, Sin } from "../engine/constants";
 import {
-  zAction, zCondition, zEffect, zSkill, val, type Action, type Condition, type Effect, type ModStat, type Quantity,
+  newCoin, zAction, zCondition, zEffect, zSkill, val, type Action, type Condition, type Effect, type ModStat, type Quantity,
   type Skill, type Trigger, type Value, type Who, zQuantity,
 } from "./schema";
 
@@ -39,7 +39,7 @@ export const mod = (stat: ModStat, amount: number | Value, extra: Partial<Action
 export const cond = (kind: Condition["kind"], extra: Partial<Condition> = {}): Condition => zCondition.parse({ kind, ...extra });
 
 export const coins = (n: number, kind: "normal" | "unbreakable" | "excision" = "normal") =>
-  Array.from({ length: n }, () => ({ kind, effects: [] as Effect[] }));
+  Array.from({ length: n }, () => newCoin(kind));
 
 export function skill(
   name: string,
