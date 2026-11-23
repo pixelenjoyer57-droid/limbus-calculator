@@ -143,7 +143,7 @@ export function Home() {
         </p>
         <Button icon="search" onClick={browseGame}>Browse game content</Button>
         <p className="small muted" style={{ marginBottom: 0 }}>
-          Data from the <a href="https://limbuscompany.wiki.gg" target="_blank" rel="noreferrer">Limbus Company Wiki</a> (CC BY-SA 4.0). Limbus Company belongs to Project Moon.
+          Data from the <a href="https://limbuscompany.wiki.gg" target="_blank" rel="noopener noreferrer">Limbus Company Wiki</a> (CC BY-SA 4.0). Limbus Company belongs to Project Moon.
         </p>
       </Card>
 

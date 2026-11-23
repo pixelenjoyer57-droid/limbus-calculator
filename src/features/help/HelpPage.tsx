@@ -24,7 +24,7 @@ const SECTIONS = [
 
 function Src({ page, label }: { page: string; label?: string }) {
   return (
-    <a href={WIKI + page} target="_blank" rel="noreferrer" className="small">
+    <a href={WIKI + page} target="_blank" rel="noopener noreferrer" className="small">
       Source: {label ?? page.replace(/_/g, " ")} (wiki) ↗
     </a>
   );
@@ -243,7 +243,7 @@ export default function HelpPage({ section }: { section?: string }) {
         <h2 id="help-gamedata">Game data from the wiki</h2>
         <ul>
           <li>
-            <strong>Where from:</strong> the <a href={"https://limbuscompany.wiki.gg"} target="_blank" rel="noreferrer">Limbus Company Wiki</a>, licensed CC BY-SA 4.0 (wiki last updated {wikiDate}). Limbus Company belongs to Project Moon.
+            <strong>Where from:</strong> the <a href={"https://limbuscompany.wiki.gg"} target="_blank" rel="noopener noreferrer">Limbus Company Wiki</a>, licensed CC BY-SA 4.0 (wiki last updated {wikiDate}). Limbus Company belongs to Project Moon.
           </li>
           <li><strong>Included:</strong> {c ? `${c.identities} Identities, ${c.egos} E.G.O, ${c.enemies} enemy variants, ${c.gifts} E.G.O Gifts` : "Identities, E.G.O, enemies and E.G.O Gifts"}. Pick them anywhere you'd pick your own content ("From the game" tab).</li>
           <li>Identities use their Uptie 4 values; E.G.O use Threadspin IV values.</li>

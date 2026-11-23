@@ -13,6 +13,9 @@ export function downloadJSON(name: string, data: unknown) {
   setTimeout(() => URL.revokeObjectURL(url), 3000);
 }
 
+/** Largest file we will read into memory for an import (matches MAX_IMPORT_CHARS in data/migrate). */
+const MAX_FILE_BYTES = 12_000_000;
+
 export function pickFile(accept = "application/json,.json,.txt"): Promise<string | null> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
@@ -21,6 +24,10 @@ export function pickFile(accept = "application/json,.json,.txt"): Promise<string
     input.onchange = () => {
       const f = input.files?.[0];
       if (!f) return resolve(null);
+      if (f.size > MAX_FILE_BYTES) {
+        toast("That file is too large to be a Workshop file (over 12 MB).", "error");
+        return resolve(null);
+      }
       const r = new FileReader();
       r.onload = () => resolve(String(r.result));
       r.onerror = () => resolve(null);

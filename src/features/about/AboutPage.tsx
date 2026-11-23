@@ -8,7 +8,7 @@ const OFL = "https://openfontlicense.org/open-font-license-official-text/";
 
 function Ext({ to, children }: { to: string; children: ReactNode }) {
   return (
-    <a href={to} target="_blank" rel="noreferrer">
+    <a href={to} target="_blank" rel="noopener noreferrer">
       {children} ↗
     </a>
   );

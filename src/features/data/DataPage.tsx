@@ -261,7 +261,7 @@ export default function DataPage() {
       <Card title="About">
         <p className="small muted">
           Sinner's Workshop is a fan-made tool for testing custom Limbus Company content. Mechanics and formulas follow the community wiki at{" "}
-          <a href="https://limbuscompany.wiki.gg/wiki/Damage_Formula" target="_blank" rel="noreferrer">
+          <a href="https://limbuscompany.wiki.gg/wiki/Damage_Formula" target="_blank" rel="noopener noreferrer">
             limbuscompany.wiki.gg
           </a>
           . It is not affiliated with Project Moon.

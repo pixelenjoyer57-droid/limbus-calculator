@@ -1,7 +1,17 @@
-// Offline cache: pages are network-first (so updates arrive), assets are cache-first
-// (their file names change on every build), game data (gamedata/*.json) is
-// stale-while-revalidate: instant from the cache, refreshed in the background.
-const CACHE = "sinners-workshop-v2";
+// Offline cache: pages and un-hashed files (icons, manifest) are network-first (so updates
+// arrive), built assets under assets/ are cache-first (their file names change on every build),
+// game data (gamedata/*.json) is stale-while-revalidate: instant from the cache, refreshed in
+// the background. Only same-origin, successful ("ok", basic) responses are ever cached, so an
+// error page or an opaque cross-origin response can't be stored and served later.
+// Bump CACHE when this logic changes; old caches are deleted on activate.
+const CACHE = "sinners-workshop-v3";
+const cacheable = (res) => res && res.ok && res.type === "basic";
+const put = (req, res) => {
+  if (cacheable(res)) {
+    const copy = res.clone();
+    caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => undefined);
+  }
+};
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {
@@ -19,8 +29,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy));
+          put(req, res);
           return res;
         })
         .catch(() => caches.match(req).then((r) => r || caches.match("./") || caches.match("./index.html"))),
@@ -33,7 +42,7 @@ self.addEventListener("fetch", (event) => {
         c.match(req).then((cached) => {
           const net = fetch(req)
             .then((res) => {
-              if (res.ok) c.put(req, res.clone());
+              if (cacheable(res)) c.put(req, res.clone());
               return res;
             })
             .catch(() => cached || Response.error());
@@ -43,17 +52,26 @@ self.addEventListener("fetch", (event) => {
     );
     return;
   }
+  if (url.pathname.includes("/assets/")) {
+    event.respondWith(
+      caches.match(req).then(
+        (cached) =>
+          cached ||
+          fetch(req).then((res) => {
+            put(req, res);
+            return res;
+          }),
+      ),
+    );
+    return;
+  }
+  // Everything else (icons, manifest): network-first, cache as the offline fallback.
   event.respondWith(
-    caches.match(req).then(
-      (cached) =>
-        cached ||
-        fetch(req).then((res) => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(req, copy));
-          }
-          return res;
-        }),
-    ),
+    fetch(req)
+      .then((res) => {
+        put(req, res);
+        return res;
+      })
+      .catch(() => caches.match(req).then((r) => r || Response.error())),
   );
 });
