@@ -1,0 +1,44 @@
+{
+  "format": 1,
+  "generatedAt": "2026-11-23T14:21:41.268Z",
+  "wikiUpdatedAt": "2026-11-23T10:45:52Z",
+  "source": "https://limbuscompany.wiki.gg",
+  "license": "CC BY-SA 4.0",
+  "attribution": "Game data from the Limbus Company Wiki (limbuscompany.wiki.gg), licensed CC BY-SA 4.0. Limbus Company belongs to Project Moon.",
+  "counts": {
+    "identities": 197,
+    "egos": 114,
+    "enemies": 1158,
+    "gifts": 728,
+    "statuses": 1266
+  },
+  "sizes": {
+    "identities": 1394360,
+    "egos": 347686,
+    "enemies": 6895838,
+    "gifts": 742861,
+    "statuses": 698746
+  },
+  "coverage": {
+    "identity": {
+      "sentences": 5841,
+      "simulated": 3001,
+      "pct": 51.4
+    },
+    "ego": {
+      "sentences": 1674,
+      "simulated": 644,
+      "pct": 38.5
+    },
+    "enemy": {
+      "sentences": 28324,
+      "simulated": 15606,
+      "pct": 55.1
+    },
+    "gift": {
+      "sentences": 2550,
+      "simulated": 90,
+      "pct": 3.5
+    }
+  }
+}

@@ -77,7 +77,7 @@ describe("one-sided attacks", () => {
   it("conditional skill effects change Base Power", () => {
     const { ws, attacker, dummy } = setup();
     const s = skill("Scaling", "WRATH", "SLASH", 4, 4, 2);
-    s.effects.push(eff("onUse", [act("mod", { stat: "basePower", who: "self", amount: { base: 0, per: { q: { kind: "statusPotency", who: "target", status: "BURN", field: "potency", sin: "WRATH" }, every: 3, amount: 1 }, min: null, max: 3 } })]));
+    s.effects.push(eff("onUse", [act("mod", { stat: "basePower", who: "self", amount: { base: 0, per: { q: { kind: "statusPotency", who: "target", status: "BURN", field: "potency", sin: "WRATH" }, q2: null, every: 3, amount: 1 }, min: null, max: 3 } })]));
     attacker.skills[0] = s;
     const r = calc(ws, side("identity", attacker.id, { skill: "S1" }), side("enemy", dummy.id, { statuses: [{ key: "BURN", potency: 7, count: 3 }] }));
     const heads = r.scenarios.find((s2) => s2.name === "All Heads, no crit")!;

@@ -397,58 +397,74 @@ export function changeSp(b: BattleState, t: UnitState, delta: number, label: str
   if (t.sp !== before) log(b, "sp", `${t.name} ${t.sp > before ? "gains" : "loses"} ${Math.abs(t.sp - before)} SP → ${t.sp} (${label})`, undefined, { side: t.side });
 }
 
+/**
+ * Who owns the Stagger Thresholds: an Abnormality Part with its own thresholds
+ * (measured against the Part's HP, as on the wiki's part tables), otherwise the core/unit.
+ */
+export function staggerOwner(b: BattleState, t: UnitState): UnitState {
+  return t.kind === "part" && t.thresholds.length ? t : core(b, t);
+}
+
 /** Stagger when HP falls to/below an untriggered threshold (or the threshold rises above HP). */
 export function checkStagger(b: BattleState, t: UnitState, viaThreshold: boolean) {
   const body = core(b, t);
   if (!body.alive) return;
+  const owner = staggerOwner(b, t);
+  if (owner.kind === "part" && owner.broken) return;
   if (sumParts(collectMods("cannotBeStaggered", { b, self: body })) > 0) return;
-  const passed = body.thresholds.filter((x) => !x.triggered && body.hp <= x.hp);
+  const passed = owner.thresholds.filter((x) => !x.triggered && owner.hp <= x.hp);
   if (!passed.length) return;
   for (const p of passed) p.triggered = true;
-  const already = body.stagger > 0;
+  const already = owner.stagger > 0;
   if (!already) {
-    body.stagger = Math.min(3, passed.length);
-    body.staggerTurn = b.turn;
-  } else if (body.staggerTurn === b.turn) {
-    body.stagger = Math.min(3, body.stagger + passed.length);
+    owner.stagger = Math.min(3, passed.length);
+    owner.staggerTurn = b.turn;
+  } else if (owner.staggerTurn === b.turn) {
+    owner.stagger = Math.min(3, owner.stagger + passed.length);
   } else return;
   const tremor = getStatus(t, "TREMOR");
-  if (tremor?.tremorTypes?.includes("FRACTURE") && tremor.potency + tremor.count >= 20 && body.stagger < 3) body.stagger += 1;
-  for (const part of b.units) if (part.coreUid === body.uid) {
-    part.stagger = body.stagger;
-    part.staggerTurn = body.staggerTurn;
-  }
-  const name = ["", "Staggered", "Staggered+", "Staggered++"][body.stagger];
-  log(b, "stagger", `${body.name} is ${name}!${viaThreshold ? " (threshold raised above HP)" : ""}`, undefined, { side: body.side, important: true });
-  cancelActions(b, body);
-  fireUnit("whenStaggered", { b, self: body });
-  for (const e of sideUnits(b, opposite(body.side))) fireUnit("onEnemyStaggered", { b, self: e, other: body });
+  if (tremor?.tremorTypes?.includes("FRACTURE") && tremor.potency + tremor.count >= 20 && owner.stagger < 3) owner.stagger += 1;
+  if (owner === body)
+    for (const part of b.units) if (part.coreUid === body.uid && !part.thresholds.length) {
+      part.stagger = body.stagger;
+      part.staggerTurn = body.staggerTurn;
+    }
+  const name = ["", "Staggered", "Staggered+", "Staggered++"][owner.stagger];
+  log(b, "stagger", `${owner.name} is ${name}!${viaThreshold ? " (threshold raised above HP)" : ""}`, undefined, { side: owner.side, important: true });
+  cancelActions(b, owner);
+  fireUnit("whenStaggered", { b, self: owner });
+  for (const e of sideUnits(b, opposite(owner.side))) fireUnit("onEnemyStaggered", { b, self: e, other: owner });
 }
 
 export function forceStagger(b: BattleState, t: UnitState, label: string) {
   const body = core(b, t);
   if (!body.alive) return;
-  if (body.stagger === 0) {
-    body.stagger = 1;
-    body.staggerTurn = b.turn;
-    log(b, "stagger", `${body.name} is Staggered! (${label})`, undefined, { important: true });
-    cancelActions(b, body);
-    fireUnit("whenStaggered", { b, self: body });
+  const owner = staggerOwner(b, t);
+  if (owner.stagger === 0) {
+    owner.stagger = 1;
+    owner.staggerTurn = b.turn;
+    log(b, "stagger", `${owner.name} is Staggered! (${label})`, undefined, { important: true });
+    cancelActions(b, owner);
+    fireUnit("whenStaggered", { b, self: owner });
   }
 }
 
-/** Raise the highest untriggered Stagger Threshold by `n` HP (Tremor Burst, Clashable Guard win). */
+/**
+ * Raise the highest untriggered Stagger Threshold by `n` HP (Tremor Burst, Clashable Guard win).
+ * A negative `n` lowers it ("Lower this unit's Stagger Threshold by N").
+ */
 export function raiseThreshold(b: BattleState, t: UnitState, n: number, label: string) {
   const body = core(b, t);
-  if (!body.alive || n <= 0) return;
-  const next = body.thresholds.filter((x) => !x.triggered).sort((a, c) => c.hp - a.hp)[0];
+  if (!body.alive || n === 0) return;
+  const owner = staggerOwner(b, t);
+  const next = owner.thresholds.filter((x) => !x.triggered).sort((a, c) => c.hp - a.hp)[0];
   if (!next) {
-    log(b, "info", `${body.name} has no Stagger Threshold left to raise (${label}).`);
+    log(b, "info", `${owner.name} has no Stagger Threshold left to ${n > 0 ? "raise" : "lower"} (${label}).`);
     return;
   }
-  next.hp += n;
-  log(b, "stagger", `${body.name}'s Stagger Threshold rises by ${n} → ${next.hp} HP (${label})`);
-  if (body.shield <= 0) checkStagger(b, body, true);
+  next.hp = Math.max(0, next.hp + n);
+  log(b, "stagger", `${owner.name}'s Stagger Threshold ${n > 0 ? "rises" : "falls"} by ${Math.abs(n)} → ${next.hp} HP (${label})`);
+  if (n > 0 && body.shield <= 0) checkStagger(b, owner, true);
 }
 
 export function tremorBurst(b: BattleState, t: UnitState, by: UnitState, label: string, extra = false) {
@@ -1024,7 +1040,8 @@ function hitTarget(b: BattleState, use: SkillUse, t: UnitState, run: CoinRun, ro
   if (rec && use.damage > before) rec.extra.push({ label: "Effects", value: use.damage - before });
 
   // ---- Stagger (also when HP was already under an untriggered threshold) and death
-  if (t.alive && core(b, t).shield <= 0) checkStagger(b, t, false);
+  const noStagger = sumParts(collectMods("cannotStagger", ctx)) > 0; // "damage from this Skill cannot Stagger"
+  if (t.alive && core(b, t).shield <= 0 && !noStagger) checkStagger(b, t, false);
   if (!core(b, t).alive) {
     fireSkill("coinKill", hitCtx);
     fireSkill("onKill", hitCtx);

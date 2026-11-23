@@ -305,13 +305,13 @@ function lantern(): Enemy {
       {
         id: newId(), name: "Wick", hp: 700, defenseMod: -2, resist: { SLASH: 2, PIERCE: 1, BLUNT: 0.5 },
         sinResist: { WRATH: 0.5, LUST: 1, SLOTH: 1, GLUTTONY: 1.5, GLOOM: 2, PRIDE: 1, ENVY: 1 },
-        breakable: "destructible", slots: 1,
+        breakable: "destructible", slots: 1, hpPerLevel: 0, speedMin: null, speedMax: null, staggerThresholds: [],
         skills: [onCoin(skill("Flicker", "GLOOM", "PIERCE", 4, 4, 2), 0, eff("onHit", [inflict("SINKING", 2, 1)]))],
       },
       {
         id: newId(), name: "Glass Shell", hp: 1100, defenseMod: 3, resist: { SLASH: 0.5, PIERCE: 0.75, BLUNT: 2 },
         sinResist: { WRATH: 0.5, LUST: 1, SLOTH: 1, GLUTTONY: 1.5, GLOOM: 2, PRIDE: 1, ENVY: 1 },
-        breakable: "indestructible", slots: 1,
+        breakable: "indestructible", slots: 1, hpPerLevel: 0, speedMin: null, speedMax: null, staggerThresholds: [],
         skills: [skill("Shatterwave", "SLOTH", "BLUNT", 6, 3, 3, { atkWeight: 3 })],
       },
     ],

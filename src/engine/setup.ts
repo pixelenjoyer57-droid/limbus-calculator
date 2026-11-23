@@ -189,6 +189,9 @@ function compileEgo(content: BattleContent, ego: Ego, key: string) {
 /** Compile an enemy into one unit, or a core + part units for multi-part enemies. */
 export function enemyUnits(content: BattleContent, e: Enemy, level: number, uidBase: string): UnitState[] {
   const lvl = level > 0 ? level : e.level;
+  // HP scales with level like the wiki's tables (HP = base + growth × level)
+  const scale = (hp: number, per: number | undefined) => (lvl === e.level || !per ? hp : hpAtLevel(hp, per, e.level, lvl));
+  const coreHp = scale(e.hp, e.hpPerLevel);
   const common = {
     side: "enemy" as const,
     sourceId: e.id,
@@ -216,11 +219,11 @@ export function enemyUnits(content: BattleContent, e: Enemy, level: number, uidB
         uid: uidBase,
         name: e.name,
         kind: "enemy",
-        maxHp: e.hp,
+        maxHp: coreHp,
         defenseMod: e.defenseMod,
         resist: { ...e.resist },
         sinResist: { ...e.sinResist },
-        thresholds: thresholdsFor(e.staggerThresholds, e.hp),
+        thresholds: thresholdsFor(e.staggerThresholds, coreHp),
         attackSkills: atk,
         defenseSkills: def,
         passives,
@@ -235,12 +238,12 @@ export function enemyUnits(content: BattleContent, e: Enemy, level: number, uidB
     uid: uidBase,
     name: e.name,
     kind: "core",
-    maxHp: e.hp,
+    maxHp: coreHp,
     targetable: false,
     defenseMod: e.defenseMod,
     resist: { ...e.resist },
     sinResist: { ...e.sinResist },
-    thresholds: thresholdsFor(e.staggerThresholds, e.hp),
+    thresholds: thresholdsFor(e.staggerThresholds, coreHp),
     passives,
     slots: 0,
     slotsMax: 0,
@@ -252,13 +255,17 @@ export function enemyUnits(content: BattleContent, e: Enemy, level: number, uidB
       const k = addSkill(content, `${uidBase}:p${pi}:K${i}`, s, "ENEMY", { part: p.name });
       (s.kind === "attack" ? atk : def).push(k);
     });
+    const partHp = scale(p.hp, p.hpPerLevel);
     return baseUnit({
       ...common,
       uid: `${uidBase}:p${pi}`,
       name: `${e.name} — ${p.name}`,
       kind: "part",
       coreUid: uidBase,
-      maxHp: p.hp,
+      maxHp: partHp,
+      speedMin: p.speedMin ?? e.speedMin,
+      speedMax: Math.max(p.speedMin ?? e.speedMin, p.speedMax ?? p.speedMin ?? e.speedMax),
+      thresholds: thresholdsFor(p.staggerThresholds ?? [], partHp),
       defenseMod: p.defenseMod,
       resist: { ...p.resist },
       sinResist: { ...p.sinResist },

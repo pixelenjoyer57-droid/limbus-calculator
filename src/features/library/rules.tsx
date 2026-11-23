@@ -69,6 +69,7 @@ export const STAT_LABEL: Record<Action["stat"], string> = {
   statusDmgTaken: "Damage taken from a status (%)",
   resist: "Resistance (+0.1 = more damage taken)",
   cannotBeStaggered: "Cannot be Staggered (1 = on)",
+  cannotStagger: "This Skill's damage cannot Stagger (1 = on)",
 };
 
 const CONDITION_LABEL: Record<Condition["kind"], string> = {
@@ -125,7 +126,7 @@ export function ValueEditor({ label, v, edit, suffix, allowNegative = true }: { 
         checked={scaling}
         onChange={(on) =>
           edit((d) => {
-            d.per = on ? { q: { kind: "statusPotency", who: "target", status: "BURN", field: "potency", sin: "WRATH" }, every: 1, amount: 1 } : null;
+            d.per = on ? { q: { kind: "statusPotency", who: "target", status: "BURN", field: "potency", sin: "WRATH" }, q2: null, every: 1, amount: 1 } : null;
           })
         }
         hint={scaling ? undefined : 'e.g. "+1 for every 3 Burn on target"'}

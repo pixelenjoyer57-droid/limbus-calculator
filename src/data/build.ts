@@ -10,7 +10,7 @@ export const q = (kind: Quantity["kind"], extra: Partial<Quantity> = {}): Quanti
 /** "base, plus `amount` for every `every` of quantity, capped at max" */
 export const per = (quantity: Quantity, every: number, amount: number, max: number | null = null, base = 0): Value => ({
   base,
-  per: { q: quantity, every, amount },
+  per: { q: quantity, q2: null, every, amount },
   min: null,
   max,
 });

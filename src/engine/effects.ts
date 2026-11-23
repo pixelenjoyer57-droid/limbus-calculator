@@ -178,7 +178,7 @@ export function evalQuantity(q: Quantity, ctx: Ctx): number {
 export function evalValue(v: Value, ctx: Ctx): number {
   let x = v.base;
   if (v.per) {
-    const q = evalQuantity(v.per.q, ctx);
+    const q = evalQuantity(v.per.q, ctx) + (v.per.q2 ? evalQuantity(v.per.q2, ctx) : 0);
     const every = v.per.every || 1;
     x += Math.floor(q / every + 1e-9) * v.per.amount;
   }
@@ -221,7 +221,7 @@ function rawCondition(c: Condition, ctx: Ctx): boolean {
   const who = () => quantityUnit({ who: c.who }, ctx);
   switch (c.kind) {
     case "compare":
-      return c.q ? compare(evalQuantity(c.q, ctx), c.op, c.value) : false;
+      return c.q ? compare(evalQuantity(c.q, ctx) + (c.q2 ? evalQuantity(c.q2, ctx) : 0), c.op, c.value) : false;
     case "hasStatus": {
       const u = who();
       return !!u && hasStatus(b, u, c.status);

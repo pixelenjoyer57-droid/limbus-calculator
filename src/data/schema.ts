@@ -71,7 +71,12 @@ export type Quantity = z.infer<typeof zQuantity>;
 export const zValue = z.object({
   base: num(0),
   per: z
-    .object({ q: zQuantity, every: num(1, 0.0001, 1e6), amount: num(1) })
+    .object({
+      q: zQuantity,
+      q2: zQuantity.nullable().catch(null).default(null), // optional second number added to q ("for every 5 (Burn + Tremor)")
+      every: num(1, 0.0001, 1e6),
+      amount: num(1),
+    })
     .nullable()
     .catch(null)
     .default(null),
@@ -96,6 +101,7 @@ export const zCondition = z.object({
   not: bool(false),
   who: z.enum(WHO).catch("target").default("target"),
   q: zQuantity.nullable().catch(null).default(null),
+  q2: zQuantity.nullable().catch(null).default(null), // optional second number added to q
   op: z.enum(OPS).catch(">=").default(">="),
   value: num(1),
   status: str("BURN", 80),
@@ -116,7 +122,7 @@ export type ActionKind = (typeof ACTIONS)[number];
 export const MOD_STATS = [
   "basePower", "coinPower", "finalPower", "clashPower", "offenseLevel", "defenseLevel",
   "dmgDealt", "dmgTaken", "critChance", "critDmg", "atkWeight", "headsChance", "speed",
-  "statusDmgTaken", "resist", "cannotBeStaggered",
+  "statusDmgTaken", "resist", "cannotBeStaggered", "cannotStagger",
 ] as const;
 export type ModStat = (typeof MOD_STATS)[number];
 export const MOD_SCOPES = ["skill", "coin", "turn", "nextTurn"] as const;
@@ -257,6 +263,8 @@ export type SinCost = z.infer<typeof zSinCost>;
 const thresholds = () => z.array(num(50, -100, 100)).max(10).catch([]).default([]);
 const meta = {
   notes: str("", 4000),
+  /** Where the item came from: the wiki page for game data (and copies of it). */
+  source: str("", 300),
   tags: z.array(z.string().max(40)).max(30).catch([]).default([]),
   createdAt: num(0),
   updatedAt: num(0),
@@ -307,6 +315,10 @@ export const zPart = z.object({
   id: id(),
   name: str("Part", 60),
   hp: int(500, 1, 999999),
+  hpPerLevel: num(0, 0, 100000), // HP gained per level when the enemy's level is changed
+  speedMin: z.number().int().min(1).max(99).nullable().catch(null).default(null), // null = the enemy's Speed
+  speedMax: z.number().int().min(1).max(99).nullable().catch(null).default(null),
+  staggerThresholds: thresholds(), // a Part's own thresholds (% of its HP); empty = use the enemy's
   defenseMod: int(0, -30, 30),
   resist: zPhys.catch({ SLASH: 1, PIERCE: 1, BLUNT: 1 }),
   sinResist: zSinResist.catch(Object.fromEntries(SINS.map((s) => [s, 1])) as SinResist),
@@ -321,7 +333,8 @@ export const zEnemy = z.object({
   kind: z.literal("enemy").catch("enemy").default("enemy"),
   name: str("New Enemy", 80),
   level: int(40, 1, 999),
-  hp: int(300, 1, 9999999),
+  hp: int(300, 1, 9999999), // HP at `level`
+  hpPerLevel: num(0, 0, 100000), // HP gained per level above `level` (encounters can change the level)
   speedMin: int(2, 1, 99),
   speedMax: int(5, 1, 99),
   defenseMod: int(0, -30, 30),

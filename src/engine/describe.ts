@@ -177,7 +177,8 @@ export function describeValue(v: Value, nameOf: NameOf = builtinName, unit = "",
     return s;
   }
   const every = v.per.every === 1 ? "" : ` ${num(v.per.every)}`;
-  let s = `${v.base ? fmt(v.base) + ", " : ""}${fmt(v.per.amount)} for every${every} ${describeQuantity(v.per.q, nameOf)}`;
+  const what = v.per.q2 ? `(${describeQuantity(v.per.q, nameOf)} + ${describeQuantity(v.per.q2, nameOf)})` : describeQuantity(v.per.q, nameOf);
+  let s = `${v.base ? fmt(v.base) + ", " : ""}${fmt(v.per.amount)} for every${every} ${what}`;
   const caps: string[] = [];
   if (v.max !== null && v.max !== undefined) caps.push(`max ${num(v.max)}${unit}`);
   if (v.min !== null && v.min !== undefined) caps.push(`min ${num(v.min)}${unit}`);
@@ -194,6 +195,7 @@ export function describeCondition(c: Condition, nameOf: NameOf = builtinName): s
   switch (c.kind) {
     case "compare": {
       if (!c.q) return "(pick a value)";
+      if (c.q2) return `${neg ? "not: " : ""}(${describeQuantity(c.q, nameOf)} + ${describeQuantity(c.q2, nameOf)}) ${OP_WORD[c.op]} ${num(c.value)}`;
       if ((c.q.kind === "statusPotency" || c.q.kind === "statusCount") && c.op === ">=" && !neg)
         return `${WHO_LABEL[c.q.who]} has ${num(c.value)}+ ${nameOf(c.q.status)}${c.q.kind === "statusCount" ? " Count" : ""}`;
       const s = `${describeQuantity(c.q, nameOf)} ${OP_WORD[c.op]} ${num(c.value)}${c.q.kind.endsWith("Pct") ? "%" : ""}`;
@@ -258,6 +260,7 @@ const MOD_TEXT: Record<Action["stat"], (v: string, a: Action, nameOf: NameOf) =>
   statusDmgTaken: (v, a, nameOf) => `Take ${v}% damage from ${nameOf(a.status)}`,
   resist: (v, a) => `${a.sin ? SIN_LABEL[a.sin] : a.dmgType ? DMG_LABEL[a.dmgType] : "(pick a type)"} Resistance ${v}`,
   cannotBeStaggered: () => "Cannot be Staggered",
+  cannotStagger: () => "Damage from this Skill cannot Stagger the target",
 };
 
 function whoSuffix(a: Action, defaultWho: Who[]): string {
