@@ -360,8 +360,8 @@ export function sampleWorkspace(): Workspace {
   const enemies = [dummy(), brute(), lantern()];
   ws.enemies.push(...enemies);
   ws.encounters.push(
-    newEncounter({ name: "Back Alley Scuffle", type: "normal", waves: [{ id: newId(), enemies: [{ enemyId: enemies[1].id, count: 2, level: 0 }] }] }),
-    newEncounter({ name: "Lantern Hunt", type: "abnormality", maxDeploy: 5, waves: [{ id: newId(), enemies: [{ enemyId: enemies[2].id, count: 1, level: 0 }] }] }),
+    newEncounter({ name: "Back Alley Scuffle", type: "normal", waves: [{ id: newId(), enemies: [{ enemyId: enemies[1].id, count: 2, level: 0, slots: 0 }] }] }),
+    newEncounter({ name: "Lantern Hunt", type: "abnormality", maxDeploy: 5, waves: [{ id: newId(), enemies: [{ enemyId: enemies[2].id, count: 1, level: 0, slots: 0 }] }] }),
   );
   const charm = newGift({
     name: "Smoldering Charm",

@@ -65,6 +65,8 @@ export interface SkillUse {
   cancelled: boolean;
   lastPower: number; // Final Power of the last Clash round
   lastClashPower: number;
+  /** Times each rule fired during this use (for the per-Skill limit). */
+  useLimits?: Record<string, number>;
 }
 
 export interface Ctx {
@@ -236,6 +238,8 @@ function rawCondition(c: Condition, ctx: Ctx): boolean {
       return !!ctx.coin && !ctx.coin.heads;
     case "isCrit":
       return !!ctx.coin && ctx.coin.crit;
+    case "isReuse":
+      return !!ctx.coin && ctx.coin.isReuse;
     case "skillSin":
       return ctx.skill?.sin === c.sin;
     case "skillDmgType":
@@ -384,6 +388,7 @@ function limitOk(ctx: Ctx, src: EffectSource): boolean {
   const owner = ctx.self;
   if (e.perTurn > 0 && (owner.limits[src.key] ?? 0) >= e.perTurn) return false;
   if (e.perEncounter > 0 && (owner.encLimits[src.key] ?? 0) >= e.perEncounter) return false;
+  if (e.perUse > 0 && ctx.use && (ctx.use.useLimits?.[src.key] ?? 0) >= e.perUse) return false;
   return true;
 }
 
@@ -391,6 +396,10 @@ function consumeLimit(ctx: Ctx, src: EffectSource) {
   const e = src.effect;
   if (e.perTurn > 0) ctx.self.limits[src.key] = (ctx.self.limits[src.key] ?? 0) + 1;
   if (e.perEncounter > 0) ctx.self.encLimits[src.key] = (ctx.self.encLimits[src.key] ?? 0) + 1;
+  if (e.perUse > 0 && ctx.use) {
+    const m = (ctx.use.useLimits ??= {});
+    m[src.key] = (m[src.key] ?? 0) + 1;
+  }
 }
 
 export function runSource(src: EffectSource, ctx: Ctx): boolean {

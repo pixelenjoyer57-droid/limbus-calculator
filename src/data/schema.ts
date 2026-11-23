@@ -89,7 +89,7 @@ export const val = (base: number): Value => ({ base, per: null, min: null, max: 
 export const OPS = [">=", "<=", ">", "<", "==", "!="] as const;
 
 export const CONDITIONS = [
-  "compare", "hasStatus", "isStaggered", "isHeads", "isTails", "isCrit",
+  "compare", "hasStatus", "isStaggered", "isHeads", "isTails", "isCrit", "isReuse",
   "skillSin", "skillDmgType", "skillSlot", "skillInflicts", "clashWon", "clashLost", "unopposed",
   "chance", "absoluteResonance", "targetIsEnemy", "sinner", "trait", "isPanicked", "statusIs",
 ] as const;
@@ -158,6 +158,7 @@ export const zEffect = z.object({
   actions: z.array(zAction).catch([]).default([]),
   perTurn: int(0, 0, 99), // 0 = unlimited
   perEncounter: int(0, 0, 99),
+  perUse: int(0, 0, 99), // at most N times per Skill use; 0 = unlimited
   text: str("", 400), // optional custom wording shown instead of the generated text
 });
 export type Effect = z.infer<typeof zEffect>;
@@ -231,7 +232,8 @@ export const zSkill = z.object({
   coins: z.array(zCoin).min(1).max(12).catch(() => [newCoin()]).default(() => [newCoin()]),
   levelMod: int(0, -30, 30),
   atkWeight: int(1, 1, 12),
-  amount: int(1, 0, 9), // copies in the skill deck (Sinners only)
+  amount: int(1, 0, 9), // copies in the skill deck (Sinners only); 0 = never drawn, but pickable
+  label: str("", 12), // short slot label of a sub-skill, e.g. "S1-2" (empty = none)
   /** Explicit attack slot of an Identity skill; null = decided by position (S1, S2, S3, then S3). */
   slot: z.enum(["S1", "S2", "S3"]).nullable().catch(null).default(null),
   unclashable: bool(false),
@@ -302,7 +304,7 @@ export const zIdentity = z.object({
   defenseMod: int(0, -30, 30),
   staggerThresholds: thresholds(),
   resist: zPhys.catch({ SLASH: 1, PIERCE: 1, BLUNT: 1 }),
-  skills: z.array(zSkill).max(6).catch(() => []).default(() => []),
+  skills: z.array(zSkill).max(12).catch(() => []).default(() => []),
   defense: z.array(zSkill).max(4).catch(() => []).default(() => []),
   passives: z.array(zPassive).max(8).catch([]).default([]),
   traits: z.array(z.string().max(40)).max(20).catch([]).default([]),
@@ -381,7 +383,7 @@ export const zEncounter = z.object({
   waves: z
     .array(z.object({
       id: id(),
-      enemies: z.array(z.object({ enemyId: z.string().catch(""), count: int(1, 1, 10), level: int(0, 0, 999) })).max(12).catch([]).default([]),
+      enemies: z.array(z.object({ enemyId: z.string().catch(""), count: int(1, 1, 10), level: int(0, 0, 999), slots: int(0, 0, 12) })).max(12).catch([]).default([]),
     }))
     .max(10)
     .catch([])

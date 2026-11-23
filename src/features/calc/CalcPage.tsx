@@ -49,7 +49,7 @@ function skillOptions(ws: Workspace, c: Combatant): { value: string; label: stri
       const slot = identitySkillSlot(s, i);
       const variant = seen.has(slot);
       seen.add(slot);
-      return { value: `S${i + 1}`, label: `${slot}${variant ? " (variant)" : ""}: ${s.name} (${skillSummary(s)})`, group: "Attack skills" };
+      return { value: `S${i + 1}`, label: `${s.label || slot + (variant ? " (variant)" : "")}: ${s.name} (${skillSummary(s)})`, group: "Attack skills" };
     });
     idn.defense.forEach((s, i) => out.push({ value: `D${i}`, label: `${s.name} (${s.kind}${s.clashable ? ", clashable" : ""})`, group: "Defense" }));
     for (const e of ws.egos.filter((x) => x.sinner === idn.sinner)) {

@@ -227,7 +227,7 @@ export interface BattleState {
   units: UnitState[];
   resources: Record<Side, Record<Sin, number>>;
   content: BattleContent;
-  waves: { enemyId: string; level: number }[][];
+  waves: { enemyId: string; level: number; slots?: number }[][];
   waveIndex: number;
   enemyTemplates: Record<string, unknown>; // compiled enemies for later waves
   maxDeploy: number;

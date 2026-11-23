@@ -21,7 +21,7 @@ export interface SimForm {
   teamId: string;
   source: "encounter" | "quick";
   encounterId: string;
-  quick: { enemyId: string; level: number; count: number }[];
+  quick: { enemyId: string; level: number; count: number; slots?: number }[];
   skillMode: "free" | "deck";
   runs: number;
   maxTurns: number;

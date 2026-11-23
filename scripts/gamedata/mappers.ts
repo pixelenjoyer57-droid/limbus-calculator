@@ -158,6 +158,7 @@ export function buildSkill(t: Template, c: Ctx, bucket: string, defaultAmount = 
     levelMod,
     atkWeight: Math.max(1, Math.min(12, toInt(P.atkweight, 1))),
     amount: Math.max(0, Math.min(9, toInt(P.amt, defaultAmount))),
+    label: "",
     slot: null,
     unclashable: !!se.flags.unclashable,
     indiscriminate: !!se.flags.indiscriminate,
@@ -245,7 +246,26 @@ export function mapIdentity(title: string, text: string, c: Ctx): Identity | nul
   const [smin, smax] = speedOf(P.speed);
   const id = "g:id:" + slugify(title);
   const amounts = [3, 2, 1, 1, 1, 1];
-  const skills = ["skill1", "skill2", "skill3", "skill4"].map((k, i) => skillIn(P[k], c, "identity", amounts[i], true)).filter((x): x is Skill => !!x);
+  // S1, S1-2, S1-3, S2, S2-2 … S3-4, then skill4. Sub-skills (skillN-M) usually have amt=0: they are not drawn
+  // into the deck, they replace a base skill through effects.
+  const skills: Skill[] = [];
+  const pushSkill = (key: string, n: number, m: number) => {
+    const sk = skillIn(P[key], c, "identity", m ? 0 : amounts[n - 1], !m);
+    if (!sk) return;
+    if (m) {
+      sk.slot = `S${n}` as "S1" | "S2" | "S3";
+      sk.label = `S${n}-${m}`;
+      const t = findFirst(P[key], /^(Skill|UptieSkills)$/i);
+      const unlock = t ? toInt(t.params.unlock, 0) : 0;
+      if (unlock > 0) sk.notes = [sk.notes, `Unlocks at Uptie ${unlock}.`].filter(Boolean).join("\n");
+    }
+    skills.push(sk);
+  };
+  for (const n of [1, 2, 3]) {
+    pushSkill(`skill${n}`, n, 0);
+    for (let m = 2; m <= 6; m++) pushSkill(`skill${n}-${m}`, n, m);
+  }
+  pushSkill("skill4", 4, 0);
   const defense = ["defense", "defense2", "defense3", "defense4"].map((k) => skillIn(P[k], c, "identity", 1)).filter((x): x is Skill => !!x);
   const passives = [...passivesIn(P.passive0, "combat", c, "identity"), ...passivesIn(P.passive1, "combat", c, "identity"), ...passivesIn(P.passive2, "support", c, "identity")];
   skills.forEach((s, i) => idSkill(s, `${id}:s${i}`));
@@ -265,7 +285,7 @@ export function mapIdentity(title: string, text: string, c: Ctx): Identity | nul
     defenseMod: toInt(P.defmod, 0),
     staggerThresholds: thresholdsOf(P),
     resist: { SLASH: resOf(P.slash), PIERCE: resOf(P.pierce), BLUNT: resOf(P.blunt) },
-    skills: skills.slice(0, 6),
+    skills: skills.slice(0, 12),
     defense: defense.slice(0, 4),
     passives: passives.slice(0, 8),
     traits: keywordsOf(P.keyword),

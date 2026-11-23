@@ -28,7 +28,7 @@ function defaultForm(ws: Workspace): SimForm {
     teamId: ws.teams[0]?.id ?? "",
     source: ws.encounters.length ? "encounter" : "quick",
     encounterId: ws.encounters[0]?.id ?? "",
-    quick: ws.enemies[0] ? [{ enemyId: ws.enemies[0].id, level: 0, count: 1 }] : [],
+    quick: ws.enemies[0] ? [{ enemyId: ws.enemies[0].id, level: 0, count: 1, slots: 0 }] : [],
     skillMode: "free",
     runs: 200,
     maxTurns: 40,
@@ -155,7 +155,7 @@ function ActionControls({ b, a, onChange, header }: { b: BattleState; a: Planned
               const s = b.content.skills[k];
               const isSlot = s.slot === "S1" || s.slot === "S2" || s.slot === "S3";
               const variant = isSlot && opts.slice(0, oi).some((o) => b.content.skills[o]?.slot === s.slot);
-              const pre = isSlot ? `${s.slot}${variant ? " (variant)" : ""}: ` : "";
+              const pre = isSlot ? `${s.label || `${s.slot}${variant ? " (variant)" : ""}`}: ` : "";
               return { value: k, label: `${pre}${s.name} · ${s.sin ? SIN_LABEL[s.sin] : "—"} · ${s.basePower}${s.coinPower >= 0 ? "+" : ""}${s.coinPower}×${s.coins.length}`, group: s.kind === "attack" ? "Skills" : "Defense" };
             }),
             ...egos.flatMap((e) => {
@@ -520,11 +520,14 @@ export default function SimPage() {
                   <div style={{ width: 150 }}>
                     <NumberInput label="Level (0 = own)" value={q.level} onChange={(n) => setForm({ ...form, quick: form.quick.map((x, j) => (j === i ? { ...x, level: n } : x)) })} min={0} max={999} />
                   </div>
+                  <div style={{ width: 130 }}>
+                    <NumberInput label="Slots" hint="0 = its own; for Abnormalities: per Part" value={q.slots ?? 0} onChange={(n) => setForm({ ...form, quick: form.quick.map((x, j) => (j === i ? { ...x, slots: n } : x)) })} min={0} max={12} />
+                  </div>
                   <Button icon="trash" small variant="ghost" label="Remove" onClick={() => setForm({ ...form, quick: form.quick.filter((_, j) => j !== i) })} />
                 </div>
               ))}
               <div style={{ maxWidth: 360 }}>
-                <ContentPicker kind="enemy" label="Add an enemy" value={null} onChange={(v) => v && setForm({ ...form, quick: [...form.quick, { enemyId: v, level: 0, count: 1 }] })} />
+                <ContentPicker kind="enemy" label="Add an enemy" value={null} onChange={(v) => v && setForm({ ...form, quick: [...form.quick, { enemyId: v, level: 0, count: 1, slots: 0 }] })} />
               </div>
             </div>
           )}

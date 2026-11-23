@@ -13,6 +13,7 @@ export interface EnemyPick {
   enemyId: string;
   level: number; // 0 = the enemy's own level
   count: number;
+  slots?: number; // 0/undefined = the enemy's own; Abnormalities: per Part
 }
 
 export interface BattleSetup {
@@ -188,7 +189,8 @@ function compileEgo(content: BattleContent, ego: Ego, key: string) {
 }
 
 /** Compile an enemy into one unit, or a core + part units for multi-part enemies. */
-export function enemyUnits(content: BattleContent, e: Enemy, level: number, uidBase: string): UnitState[] {
+export function enemyUnits(content: BattleContent, e: Enemy, level: number, uidBase: string, slotsOverride = 0): UnitState[] {
+  const ov = Math.max(0, Math.min(12, Math.floor(slotsOverride || 0)));
   const lvl = level > 0 ? level : e.level;
   // HP scales with level like the wiki's tables (HP = base + growth × level)
   const scale = (hp: number, per: number | undefined) => (lvl === e.level || !per ? hp : hpAtLevel(hp, per, e.level, lvl));
@@ -228,8 +230,8 @@ export function enemyUnits(content: BattleContent, e: Enemy, level: number, uidB
         attackSkills: atk,
         defenseSkills: def,
         passives,
-        slots: e.slots,
-        slotsMax: Math.max(e.slots, e.slotsMax),
+        slots: ov ? Math.min(e.slots, ov) : e.slots,
+        slotsMax: ov || Math.max(e.slots, e.slotsMax),
         rotation: e.rotation.map((turn) => turn.map((sid) => idMap[sid]).filter(Boolean)),
       }),
     ];
@@ -273,8 +275,8 @@ export function enemyUnits(content: BattleContent, e: Enemy, level: number, uidB
       breakable: p.breakable,
       attackSkills: atk,
       defenseSkills: def,
-      slots: p.slots,
-      slotsMax: p.slots,
+      slots: ov || p.slots,
+      slotsMax: ov || p.slots,
       hasSanity: false,
     });
   });
@@ -343,16 +345,16 @@ export function createBattle(setup: BattleSetup): { battle: BattleState; warning
   }
   if (!units.some((u) => u.side === "ally" && u.deployOrder >= 0)) warnings.push("No Identities are deployed. Pick Identities in the team first.");
 
-  const waves: { enemyId: string; level: number }[][] = [];
+  const waves: { enemyId: string; level: number; slots?: number }[][] = [];
   if (enc) {
     for (const w of enc.waves) {
-      const list: { enemyId: string; level: number }[] = [];
-      for (const e of w.enemies) for (let i = 0; i < e.count; i++) list.push({ enemyId: e.enemyId, level: e.level });
+      const list: { enemyId: string; level: number; slots?: number }[] = [];
+      for (const e of w.enemies) for (let i = 0; i < e.count; i++) list.push({ enemyId: e.enemyId, level: e.level, slots: e.slots ?? 0 });
       if (list.length) waves.push(list);
     }
   } else if (setup.enemies) {
-    const list: { enemyId: string; level: number }[] = [];
-    for (const e of setup.enemies) for (let i = 0; i < e.count; i++) list.push({ enemyId: e.enemyId, level: e.level });
+    const list: { enemyId: string; level: number; slots?: number }[] = [];
+    for (const e of setup.enemies) for (let i = 0; i < e.count; i++) list.push({ enemyId: e.enemyId, level: e.level, slots: e.slots ?? 0 });
     if (list.length) waves.push(list);
   }
   if (!waves.length) warnings.push("No enemies were picked.");
@@ -406,7 +408,7 @@ export function spawnWave(b: BattleState, ws: Workspace | null, index: number, w
     }
     b.enemyTemplates[template.id] = template;
     const uid = `w${index}e${n++}`;
-    for (const u of enemyUnits(b.content, template, pick.level, uid)) {
+    for (const u of enemyUnits(b.content, template, pick.level, uid, pick.slots ?? 0)) {
       b.units.push(u);
       stat(b, u);
     }

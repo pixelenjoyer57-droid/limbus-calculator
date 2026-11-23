@@ -11,13 +11,14 @@
 .bf-group-label { font-size: 0.8rem; font-weight: 700; color: var(--text-2); margin: 0 0 4px; }
 .bf-units { display: flex; flex-wrap: wrap; gap: 12px 10px; align-items: flex-start; }
 .bf-unit { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 112px; max-width: 100%; position: relative; padding: 4px 2px 6px; border-radius: var(--radius-sm); }
-.bf-unit.wide { width: auto; min-width: 112px; }
+.bf-unit.wide { width: min(100%, 252px); min-width: 112px; }
+.bf-unit.many { width: min(100%, 340px); }
 .bf-unit.dead { opacity: 0.55; }
 .bf-unit.is-target { outline: 3px solid var(--gold); outline-offset: 1px; background: var(--gold-soft); }
 .bf-targetlabel { font-size: 0.7rem; font-weight: 800; color: var(--gold); text-transform: uppercase; letter-spacing: 0.04em; }
 
 .bf-slots { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; max-width: 100%; }
-.bf-slot { display: flex; flex-direction: column; align-items: stretch; gap: 2px; min-width: 76px; min-height: var(--tap); padding: 3px 5px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; font-size: 0.72rem; cursor: pointer; text-align: center; }
+.bf-slot { flex: 0 0 auto; display: flex; flex-direction: column; align-items: stretch; gap: 2px; min-width: 76px; min-height: var(--tap); padding: 3px 5px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; font-size: 0.72rem; cursor: pointer; text-align: center; }
 .bf-slot.static { cursor: default; }
 button.bf-slot:hover { border-color: var(--gold); }
 .bf-slot.open { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
@@ -45,7 +46,8 @@ button.bf-slot:hover { border-color: var(--gold); }
 @media (max-width: 420px) {
   .bf-side { padding: 8px; }
   .bf-unit { width: calc(50% - 6px); }
-  .bf-unit.wide { width: auto; min-width: calc(50% - 6px); }
+  .bf-unit.wide { width: 100%; min-width: calc(50% - 6px); }
+  .bf-unit.many { width: 100%; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .bf-unit, .bf-slot { transition: background 0.15s, outline-color 0.15s; }

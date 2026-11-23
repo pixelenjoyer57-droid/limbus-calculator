@@ -80,6 +80,7 @@ const CONDITION_LABEL: Record<Condition["kind"], string> = {
   isHeads: "This coin landed Heads",
   isTails: "This coin landed Tails",
   isCrit: "This hit is a Critical Hit",
+  isReuse: "This Coin is a Reuse (a repeated hit)",
   skillSin: "Skill has a sin affinity",
   skillDmgType: "Skill has a damage type",
   skillSlot: "Skill is Skill 1 / 2 / 3 / Defense / E.G.O",
@@ -354,6 +355,7 @@ function RuleEditor({ e, edit, scope, onRemove, onMove, onDuplicate, index, tota
             <div className="label">Limits &amp; wording</div>
             <div className="fields">
               <NumberInput label="Max per turn (0 = no limit)" value={e.perTurn} onChange={(n) => edit((d) => void (d.perTurn = n))} min={0} max={99} />
+              <NumberInput label="Times per Skill use (0 = no limit)" value={e.perUse} onChange={(n) => edit((d) => void (d.perUse = n))} min={0} max={99} />
               <NumberInput label="Max per encounter" value={e.perEncounter} onChange={(n) => edit((d) => void (d.perEncounter = n))} min={0} max={99} />
               <TextInput label="Custom wording (optional)" className="full" value={e.text} onChange={(v) => edit((d) => void (d.text = v), "e-text")} maxLength={400} hint="Replaces the generated text in previews. The rule above still decides what the simulator does." />
             </div>

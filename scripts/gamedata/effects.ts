@@ -72,6 +72,13 @@ const BRACKET_TRIGGERS: Record<string, Trigger> = {
   constant: "always",
   "always active": "always",
 };
+/** Labels that also need a condition: [Reuse - On Hit] only counts for a reused Coin, etc. */
+const BRACKET_EXTRA: Record<string, { trigger: Trigger; conds: () => Condition[] }> = {
+  "reuse - on hit": { trigger: "onHit", conds: () => [C("isReuse")] },
+  "reuse on hit": { trigger: "onHit", conds: () => [C("isReuse")] },
+  "crit - heads hit": { trigger: "onCrit", conds: () => [C("isHeads")] },
+  "on crit - heads hit": { trigger: "onCrit", conds: () => [C("isHeads")] },
+};
 const FLAG_BRACKETS = new Set(["indiscriminate", "unclashable", "clashable counter", "clashable guard", "target fixed", "aoe"]);
 
 /** Sentences that only describe targeting / AI / UI; kept as notes but not counted as "missing". */
@@ -143,6 +150,7 @@ interface Partial2 {
   actions: Action[];
   perTurn?: number;
   perEncounter?: number;
+  perUse?: number;
   trigger?: Trigger;
 }
 
@@ -702,7 +710,28 @@ function readAction(r: Reader, c: ActCtx): Action[] | null {
   if (r.eat(/(?:the )?damage (?:dealt )?(?:by|from|of) this Skill (?:cannot|can't|does not|doesn't|will not) Stagger(?: the target)?|this Skill(?:'s damage)? (?:cannot|can't|does not) Stagger(?: the target)?/i))
     return [A("mod", { stat: "cannotStagger" as ModStat, amount: V(1), who: "self" })];
   // Reuse this Coin (once per Skill/turn)
-  if (r.eat(/reuse (?:this |the )?coin\b/i)) return [A("reuseCoin", { amount: V(1) })];
+  if (r.eat(/reuse (?:this |the )?coin\b/i)) {
+    let n = 1;
+    let perUse = 0;
+    const word = (w: string, d: string | undefined) => (/^once$/i.test(w) ? 1 : /^twice$/i.test(w) ? 2 : Number(d));
+    const inl = r.eat(/(once|twice|(\d+) times?)(?!\s*(?:per|max))/i);
+    if (inl) {
+      n = word(inl[1], inl[2]);
+      perUse = 1;
+    }
+    const q = r.eat(/\((?:(once|twice|(\d+) times?)(?: max)?(?: per skill)?|max(?:imum)? (\d+) times?(?: per skill)?)\)/i);
+    if (q) {
+      if (q[3]) perUse = Number(q[3]);
+      else if (/per skill|max/i.test(q[0])) perUse = word(q[1], q[2]);
+      else {
+        n = word(q[1], q[2]);
+        perUse = 1;
+      }
+    }
+    const a = A("reuseCoin", { amount: V(n) });
+    if (perUse) (a as Action & { _perUse?: number })._perUse = perUse;
+    return [a];
+  }
   // Gain N <sin> E.G.O Resource(s)
   if ((m = r.eat(new RegExp(`gain (${NUM}) (wrath|lust|sloth|gluttony|gloom|pride|envy) (?:E\\.G\\.O )?resources?`, "i")))) return [A("gainResource", { sin: SIN_WORDS[m[2].toLowerCase()], amount: V(num(m[1])) })];
   return null;
@@ -773,6 +802,11 @@ function parseSentence(text0: string, trig: Trigger, where: Where, lookup: Statu
     const a = readAction(r, ctx);
     if (!a) return null;
     for (const x of a) {
+      const pu = (x as Action & { _perUse?: number })._perUse;
+      if (pu) {
+        out.perUse = pu;
+        delete (x as Action & { _perUse?: number })._perUse;
+      }
       const req = (x as Action & { _require?: Condition })._require;
       if (req) {
         out.conditions.push(req);
@@ -783,7 +817,9 @@ function parseSentence(text0: string, trig: Trigger, where: Where, lookup: Statu
     // qualifiers
     for (let k = 0; k < 3; k++) {
       let tm: RegExpExecArray | null;
-      if (r.eat(/\(once per turn\)|once per turn/i)) out.perTurn = 1;
+      if (r.eat(/\(once per skill\)|once per skill/i)) out.perUse = 1;
+      else if ((tm = r.eat(/\((?:max(?:imum)? )?(\d+) times?(?: max)? per skill\)|(\d+) times per skill/i))) out.perUse = Number(tm[1] ?? tm[2]);
+      else if (r.eat(/\(once per turn\)|once per turn/i)) out.perTurn = 1;
       else if ((tm = r.eat(/\(?(\d+) times per turn\)?/i))) out.perTurn = Number(tm[1]);
       else if ((tm = r.eat(/\(?(?:max(?:imum)?\s*)?(\d+) times per (?:encounter|battle)\)?/i))) out.perEncounter = Number(tm[1]);
       else if (r.eat(/\(once per (?:encounter|battle)\)|once per encounter/i)) out.perEncounter = 1;
@@ -810,6 +846,8 @@ function parseSentence(text0: string, trig: Trigger, where: Where, lookup: Statu
     return null;
   }
   if (!r.done || !out.actions.length) return null;
+  // a random chance to Reuse is not simulated as such: keep it as a note
+  if (out.actions.some((a) => a.kind === "reuseCoin") && out.conditions.some((c) => c.kind === "chance")) return null;
   return out;
 }
 
@@ -851,6 +889,7 @@ function toEffect(p: Partial2, trigger: Trigger, sentence: string): Effect {
     actions: p.actions,
     perTurn: p.perTurn ?? 0,
     perEncounter: p.perEncounter ?? 0,
+    perUse: p.perUse ?? 0,
     text: sentence.length <= 400 ? sentence : sentence.slice(0, 397) + "…",
   };
 }
@@ -878,10 +917,12 @@ export function convert(text: string, where: Where, lookup: StatusLookup): Conve
   const res: Converted = { effects: [], notes: [], flags: {}, sentences: 0, parsed: 0, info: 0 };
   const lines = prep(text).split(/\n+/).map((l) => l.trim()).filter(Boolean);
   let lineTrigger: Trigger | null = null;
+  let lineExtra: Condition[] = [];
   for (const raw of lines) {
     let line = raw;
     const isBullet = /^[-•]/.test(line);
     let trig: Trigger | null = isBullet ? lineTrigger : null;
+    let extra: Condition[] = isBullet ? lineExtra : [];
     let flagOnly = true;
     // leading [Trigger] labels
     for (;;) {
@@ -896,6 +937,11 @@ export function convert(text: string, where: Where, lookup: StatusLookup): Conve
           res.flags.clashable = true;
         }
         if (label === "clashable guard") res.flags.clashable = true;
+      } else if (BRACKET_EXTRA[label.replace(/\s*[–—]\s*/g, " - ")]) {
+        const be = BRACKET_EXTRA[label.replace(/\s*[–—]\s*/g, " - ")];
+        trig = be.trigger;
+        extra = be.conds();
+        flagOnly = false;
       } else if (BRACKET_TRIGGERS[label]) {
         trig = BRACKET_TRIGGERS[label];
         flagOnly = false;
@@ -907,7 +953,10 @@ export function convert(text: string, where: Where, lookup: StatusLookup): Conve
       }
       line = line.slice(m[0].length);
     }
-    if (!isBullet) lineTrigger = trig;
+    if (!isBullet) {
+      lineTrigger = trig;
+      lineExtra = extra;
+    }
     const plain = line.replace(/\u0000/g, "").trim();
     if (!plain) {
       if (!flagOnly || !trig) continue;
@@ -948,7 +997,7 @@ export function convert(text: string, where: Where, lookup: StatusLookup): Conve
       res.sentences++;
       const base = p.trigger ?? t;
       const fin = finalizeTrigger(base, p, where);
-      p.conditions.push(...fin.extra);
+      p.conditions.push(...fin.extra, ...extra.map((c) => ({ ...c })));
       res.effects.push(toEffect(p, fin.trigger, display((trig ? `[${labelOf(raw)}] ` : "") + sentence)));
       res.parsed++;
     }

@@ -33,14 +33,35 @@ function skillChip(b: BattleState, a: PlannedAction): { text: string; sin: strin
 function targetText(b: BattleState, a: PlannedAction, many: boolean): string | null {
   if (!a.skill) return null;
   const pre = many ? `${a.slot + 1}: ` : "";
+  const t = targetBody(b, a);
+  return t ? pre + t : null;
+}
+
+function targetBody(b: BattleState, a: PlannedAction): string | null {
   if (a.targetAction) {
     const o = b.plan.find((x) => x.id === a.targetAction);
     const ou = o && b.units.find((x) => x.uid === o.uid);
     const os = o?.skill ? b.content.skills[o.skill] : undefined;
-    if (ou) return `${pre}⚔ clashes ${partName(ou)}'s ${os?.name ?? "action"}`;
+    if (ou) return `⚔ clashes ${partName(ou)}'s ${os?.name ?? "action"}`;
   }
   const t = b.units.find((x) => x.uid === a.target);
-  return t ? `${pre}→ ${partName(t)}` : null;
+  return t ? `→ ${partName(t)}` : null;
+}
+
+/** Consecutive slots with the same target become one line ("1–10: → Body"); at most `max` lines, then "+N more". */
+export function groupTargets(b: BattleState, actions: PlannedAction[], many: boolean, max = 3): { key: string; text: string }[] {
+  const runs: { from: number; to: number; text: string }[] = [];
+  for (const a of actions) {
+    const t = a.skill ? targetBody(b, a) : null;
+    if (!t) continue;
+    const last = runs[runs.length - 1];
+    if (last && last.text === t && last.to === a.slot - 1) last.to = a.slot;
+    else runs.push({ from: a.slot, to: a.slot, text: t });
+  }
+  const line = (r: { from: number; to: number; text: string }) => `${many ? `${r.from === r.to ? r.from + 1 : `${r.from + 1}–${r.to + 1}`}: ` : ""}${r.text}`;
+  const out = runs.slice(0, max).map((r) => ({ key: `${r.from}`, text: line(r) }));
+  if (runs.length > max) out.push({ key: "more", text: `+${runs.length - max} more` });
+  return out;
 }
 
 function targetUidOf(b: BattleState, a: PlannedAction | undefined): string | null {
@@ -74,7 +95,7 @@ function Token({ b, u, isTarget, onOpen, actions, onSlot, openId, onActive }: {
   ].filter(Boolean).join(", ");
   const many = actions.length > 1;
   return (
-    <div className={`bf-unit ${u.alive ? "" : "dead"} ${isTarget ? "is-target" : ""} ${actions.length > 2 ? "wide" : ""}`}>
+    <div className={`bf-unit ${u.alive ? "" : "dead"} ${isTarget ? "is-target" : ""} ${actions.length > 2 ? "wide" : ""} ${actions.length > 6 ? "many" : ""}`}>
       {isTarget && <span className="bf-targetlabel">Target</span>}
       {actions.length > 0 && (
         <div className="bf-slots">
@@ -96,10 +117,9 @@ function Token({ b, u, isTarget, onOpen, actions, onSlot, openId, onActive }: {
       )}
       {/* always rendered with a fixed height so tokens in a row line up */}
       <div className="bf-targets">
-        {actions.map((a) => {
-          const t = targetText(b, a, many);
-          return t ? <span key={a.id} title={t}>{t}</span> : null;
-        })}
+        {groupTargets(b, actions, many).map((l) => (
+          <span key={l.key} title={l.text}>{l.text}</span>
+        ))}
       </div>
       <button type="button" className={`bf-token ${u.side} ${part ? "part" : ""}`} aria-label={`${label}. Press for details`} onClick={onOpen}>
         <span aria-hidden="true">{monogram(u)}</span>

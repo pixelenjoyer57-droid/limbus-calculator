@@ -167,7 +167,7 @@ export function IdentityEditor({ item: x, edit }: { item: Identity; edit: Edit<I
             />
           );
         })}
-        {x.skills.length < 6 && (
+        {x.skills.length < 12 && (
           <Button small icon="plus" onClick={() => edit((d) => void d.skills.push(newSkill({ name: "New skill", sin: "WRATH", dmgType: "SLASH", basePower: 4, coinPower: 4, coins: [newCoin(), newCoin()], amount: 1 })))}>
             Add skill
           </Button>

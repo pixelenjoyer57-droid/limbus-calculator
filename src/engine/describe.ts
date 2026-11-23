@@ -209,6 +209,8 @@ export function describeCondition(c: Condition, nameOf: NameOf = builtinName): s
       return neg ? "this coin is not Heads" : "this coin is Heads";
     case "isTails":
       return neg ? "this coin is not Tails" : "this coin is Tails";
+    case "isReuse":
+      return neg ? "this Coin is not a Reuse" : "this Coin is a Reuse";
     case "isCrit":
       return neg ? "this is not a Critical Hit" : "this is a Critical Hit";
     case "skillSin":
@@ -346,6 +348,7 @@ export function describeEffect(e: Effect, nameOf: NameOf = builtinName): string 
   s += acts.length ? acts.join("; ") : "(no action yet)";
   const limits: string[] = [];
   if (e.perTurn) limits.push(e.perTurn === 1 ? "once per turn" : `${e.perTurn} times per turn`);
+  if (e.perUse) limits.push(e.perUse === 1 ? "once per Skill" : `${e.perUse} times per Skill`);
   if (e.perEncounter) limits.push(e.perEncounter === 1 ? "once per encounter" : `${e.perEncounter} times per encounter`);
   if (limits.length) s += ` (${limits.join(", ")})`;
   return tag ? `${tag} ${s}` : s;

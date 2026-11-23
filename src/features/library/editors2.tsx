@@ -62,11 +62,14 @@ export function EncounterEditor({ item: x, edit }: { item: Encounter; edit: Edit
                 <div style={{ width: 150 }}>
                   <NumberInput label="Level (0 = own)" value={e.level} onChange={(n) => edit((d) => void (d.waves[wi].enemies[ei].level = n))} min={0} max={999} />
                 </div>
+                <div style={{ width: 130 }}>
+                  <NumberInput label="Slots" hint="0 = its own; for Abnormalities: per Part" value={e.slots ?? 0} onChange={(n) => edit((d) => void (d.waves[wi].enemies[ei].slots = n))} min={0} max={12} />
+                </div>
                 <Button icon="trash" small variant="ghost" label="Remove enemy" onClick={() => edit((d) => void d.waves[wi].enemies.splice(ei, 1))} />
               </div>
             ))}
             <div style={{ maxWidth: 360, marginTop: 8 }}>
-              <ContentPicker kind="enemy" label="Add an enemy" value={null} onChange={(v) => v && edit((d) => void d.waves[wi].enemies.push({ enemyId: v, count: 1, level: 0 }))} />
+              <ContentPicker kind="enemy" label="Add an enemy" value={null} onChange={(v) => v && edit((d) => void d.waves[wi].enemies.push({ enemyId: v, count: 1, level: 0, slots: 0 }))} />
             </div>
           </div>
         ))}

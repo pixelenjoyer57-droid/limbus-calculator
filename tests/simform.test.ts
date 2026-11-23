@@ -24,4 +24,8 @@ describe("healSimForm", () => {
     const q = [{ enemyId: "gone", level: 0, count: 1 }, { enemyId: "en1", level: 0, count: 1 }, { enemyId: "g:en:5", level: 0, count: 1 }];
     expect(healSimForm(ws, { ...base, source: "quick", quick: q }).quick.map((x) => x.enemyId)).toEqual(["en1", "g:en:5"]);
   });
+  it("gives old quick rows a Slots override of 0", () => {
+    const q = [{ enemyId: "en1", level: 0, count: 1 }, { enemyId: "en1", level: 0, count: 1, slots: 2 }];
+    expect(healSimForm(ws, { ...base, source: "quick", quick: q }).quick.map((x) => x.slots)).toEqual([0, 2]);
+  });
 });

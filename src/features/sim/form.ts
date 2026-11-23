@@ -19,7 +19,9 @@ export function healSimForm(ws: Workspace, f: SimForm): SimForm {
     set({ encounterId: first });
     if (!first && f.source === "encounter") set({ source: "quick" });
   }
-  const quick = f.quick.filter((q) => q.enemyId.startsWith("g:") || ws.enemies.some((e) => e.id === q.enemyId));
-  if (quick.length !== f.quick.length) set({ quick });
+  let quick = f.quick.filter((q) => q.enemyId.startsWith("g:") || ws.enemies.some((e) => e.id === q.enemyId));
+  // rows saved before the Slots override existed get 0 (= the enemy's own)
+  if (quick.some((q) => typeof q.slots !== "number")) quick = quick.map((q) => (typeof q.slots === "number" ? q : { ...q, slots: 0 }));
+  if (quick !== f.quick && (quick.length !== f.quick.length || quick.some((q, i) => q !== f.quick[i]))) set({ quick });
   return out;
 }
