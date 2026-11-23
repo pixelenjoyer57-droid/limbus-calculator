@@ -68,33 +68,40 @@ function ClashCard({ e }: { e: LogEntry }) {
         ))}
       </div>
       <div className="clash-scroll">
-        <table className="clash-table">
+        <table className="clash-table" role="table">
           <caption>
             Clash rounds: {c.a.name} vs {c.b.name}
           </caption>
-          <thead>
-            <tr>
-              <th scope="col">Round</th>
-              <th scope="col">{c.a.name} coins</th>
-              <th scope="col">{c.a.name} power</th>
-              <th scope="col">{c.b.name} power</th>
-              <th scope="col">{c.b.name} coins</th>
-              <th scope="col">Result</th>
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">Round</th>
+              <th scope="col" role="columnheader">{c.a.name} coins</th>
+              <th scope="col" role="columnheader">{c.a.name} power</th>
+              <th scope="col" role="columnheader">{c.b.name} power</th>
+              <th scope="col" role="columnheader">{c.b.name} coins</th>
+              <th scope="col" role="columnheader">Result</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {c.rounds.map((r, i) => (
-              <tr key={i}>
-                <th scope="row">{i + 1}</th>
-                <td>
+              <tr key={i} role="row">
+                <th scope="row" role="rowheader" className="clash-rd">
+                  <span aria-hidden>R</span>
+                  {i + 1}
+                </th>
+                <td role="cell" className="clash-coins-a">
                   <Chips coins={r.a.coins} />
                 </td>
-                <td className="num">{r.a.total}</td>
-                <td className="num">{r.b.total}</td>
-                <td>
+                <td role="cell" className="clash-pow clash-pow-a">
+                  {r.a.total}
+                </td>
+                <td role="cell" className="clash-pow clash-pow-b">
+                  {r.b.total}
+                </td>
+                <td role="cell" className="clash-coins-b">
                   <Chips coins={r.b.coins} />
                 </td>
-                <td className="res">
+                <td role="cell" className="res">
                   {roundText(r)}
                   <details>
                     <summary>Show the math</summary>

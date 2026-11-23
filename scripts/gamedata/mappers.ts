@@ -158,6 +158,7 @@ export function buildSkill(t: Template, c: Ctx, bucket: string, defaultAmount = 
     levelMod,
     atkWeight: Math.max(1, Math.min(12, toInt(P.atkweight, 1))),
     amount: Math.max(0, Math.min(9, toInt(P.amt, defaultAmount))),
+    slot: null,
     unclashable: !!se.flags.unclashable,
     indiscriminate: !!se.flags.indiscriminate,
     effects: se.effects,
@@ -195,10 +196,16 @@ function passivesIn(v: string | undefined, kind: Passive["kind"], c: Ctx, bucket
   if (!v) return [];
   return findAll(v, "Passive").map((t) => buildPassive(t, kind, c, bucket));
 }
-function skillIn(v: string | undefined, c: Ctx, bucket: string, amount = 1): Skill | null {
+function skillIn(v: string | undefined, c: Ctx, bucket: string, amount = 1, withSlot = false): Skill | null {
   if (!v) return null;
   const t = findFirst(v, /^(Skill|UptieSkills)$/i);
-  return t ? buildSkill(t, c, bucket, amount) : null;
+  if (!t) return null;
+  const sk = buildSkill(t, c, bucket, amount);
+  if (withSlot) {
+    const lv = toInt(t.params.slevel, 0);
+    if (lv >= 1 && lv <= 3) sk.slot = `S${lv}` as "S1" | "S2" | "S3";
+  }
+  return sk;
 }
 
 // ---------------------------------------------------------------------------------
@@ -238,7 +245,7 @@ export function mapIdentity(title: string, text: string, c: Ctx): Identity | nul
   const [smin, smax] = speedOf(P.speed);
   const id = "g:id:" + slugify(title);
   const amounts = [3, 2, 1, 1, 1, 1];
-  const skills = ["skill1", "skill2", "skill3", "skill4"].map((k, i) => skillIn(P[k], c, "identity", amounts[i])).filter((x): x is Skill => !!x);
+  const skills = ["skill1", "skill2", "skill3", "skill4"].map((k, i) => skillIn(P[k], c, "identity", amounts[i], true)).filter((x): x is Skill => !!x);
   const defense = ["defense", "defense2", "defense3", "defense4"].map((k) => skillIn(P[k], c, "identity", 1)).filter((x): x is Skill => !!x);
   const passives = [...passivesIn(P.passive0, "combat", c, "identity"), ...passivesIn(P.passive1, "combat", c, "identity"), ...passivesIn(P.passive2, "support", c, "identity")];
   skills.forEach((s, i) => idSkill(s, `${id}:s${i}`));

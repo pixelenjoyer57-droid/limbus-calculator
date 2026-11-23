@@ -1,6 +1,6 @@
 import { DMG_LABEL, DMG_TYPES, EGO_GRADES, LIMITS, RARITY_LABEL, SIN_LABEL, SINS, type DmgType, type Sin } from "../../engine/constants";
 import { overclockCost } from "../../engine/formulas";
-import { newId, zPart, zPassive, type Ego, type Enemy, type Identity, type Part } from "../../data/schema";
+import { identitySkillSlot, moveItem, newCoin, newId, zPart, zPassive, type Ego, type Enemy, type Identity, type Part } from "../../data/schema";
 import { newSkill } from "../../data/defaults";
 import { Button, Check, NumberInput, Select, TagInput, TextArea, TextInput } from "../../ui/controls";
 import { Notice, Section } from "../../ui/layout";
@@ -62,11 +62,13 @@ export function identityWarnings(x: Identity): string[] {
   const w: string[] = [];
   if (x.speedMax < x.speedMin) w.push("Speed max is lower than Speed min.");
   if (x.staggerThresholds.length > 3) w.push("Sinners have 1–3 Stagger Thresholds.");
-  if (x.skills.length < 3) w.push("Identities need Skill 1, 2 and 3.");
+  const have = new Set(x.skills.map((s, i) => identitySkillSlot(s, i)));
+  for (const slot of ["S1", "S2", "S3"]) if (!have.has(slot as "S1")) w.push(`No skill in slot ${slot}.`);
   for (const [i, s] of x.skills.entries()) {
-    if (s.levelMod < LIMITS.levelMod.min || s.levelMod > LIMITS.levelMod.max) w.push(`Skill ${i + 1}: level modifier outside −8…+6.`);
-    if (s.coins.length > LIMITS.coins.max) w.push(`Skill ${i + 1}: more than ${LIMITS.coins.max} coins.`);
-    if (!s.sin) w.push(`Skill ${i + 1}: no sin affinity.`);
+    const n = s.name || `Skill ${i + 1}`;
+    if (s.levelMod < LIMITS.levelMod.min || s.levelMod > LIMITS.levelMod.max) w.push(`${n}: level modifier outside −8…+6.`);
+    if (s.coins.length > LIMITS.coins.max) w.push(`${n}: more than ${LIMITS.coins.max} coins.`);
+    if (!s.sin) w.push(`${n}: no sin affinity.`);
   }
   if (!x.defense.length) w.push("No Defense skill.");
   for (const r of Object.values(x.resist)) if (r > 2) w.push("A resistance is above Fatal ×2.");
@@ -128,10 +130,49 @@ export function IdentityEditor({ item: x, edit }: { item: Identity; edit: Edit<I
         </p>
       </Section>
       <Section id="id-skills" title="Attack skills" summary={x.skills.map((s) => s.name).join(" · ")}>
-        {x.skills.map((s, i) => (
-          <SkillEditor key={s.id} s={s} title={`Skill ${i + 1}`} context="identity" level={x.level} edit={(fn, k) => edit((d) => fn(d.skills[i]), k ? `s${i}-${k}` : undefined)} defaultOpen={false} />
-        ))}
-        <p className="small muted" style={{ marginTop: 10 }}>Skill 3 unlocks at Uptie 3. Copies in the deck: 3 / 2 / 1 by default.</p>
+        {x.skills.map((s, i) => {
+          const slot = identitySkillSlot(s, i);
+          const variant = x.skills.some((o, j) => j < i && identitySkillSlot(o, j) === slot);
+          const base = i < 3 && !s.slot ? `Skill ${i + 1}` : "Extra skill";
+          return (
+            <SkillEditor
+              key={s.id}
+              s={s}
+              title={`${base} · ${slot}${variant ? " variant" : ""}`}
+              context="identity"
+              level={x.level}
+              edit={(fn, k) => edit((d) => fn(d.skills[i]), k ? `s${i}-${k}` : undefined)}
+              defaultOpen={false}
+              onMove={(dir) => edit((d) => moveItem(d.skills, i, dir))}
+              canMoveUp={i > 0}
+              canMoveDown={i < x.skills.length - 1}
+              onRemove={() => edit((d) => void d.skills.splice(i, 1))}
+              removeDisabled={x.skills.length <= 1}
+              extra={
+                <div className="fields" style={{ marginBottom: 10 }}>
+                  <Select
+                    label="Slot"
+                    value={s.slot ?? ""}
+                    onChange={(v) => edit((d) => void (d.skills[i].slot = v === "" ? null : (v as "S1" | "S2" | "S3")))}
+                    options={[
+                      { value: "", label: "By position (S1/S2/S3)" },
+                      { value: "S1", label: "S1" },
+                      { value: "S2", label: "S2" },
+                      { value: "S3", label: "S3" },
+                    ]}
+                    hint="Two skills in the same slot are variants: each has its own copies in the deck."
+                  />
+                </div>
+              }
+            />
+          );
+        })}
+        {x.skills.length < 6 && (
+          <Button small icon="plus" onClick={() => edit((d) => void d.skills.push(newSkill({ name: "New skill", sin: "WRATH", dmgType: "SLASH", basePower: 4, coinPower: 4, coins: [newCoin(), newCoin()], amount: 1 })))}>
+            Add skill
+          </Button>
+        )}
+        <p className="small muted" style={{ marginTop: 10 }}>Skills in the S3 slot unlock at Uptie 3. Copies in the deck: 3 / 2 / 1 by default; each skill keeps its own count. Position decides the slot unless you pick one.</p>
       </Section>
       <Section id="id-def" title="Defense skills" summary={x.defense.map((s) => s.name).join(" · ") || "none"}>
         {x.defense.map((s, i) => (
@@ -143,6 +184,9 @@ export function IdentityEditor({ item: x, edit }: { item: Identity; edit: Edit<I
             level={x.level}
             edit={(fn, k) => edit((d) => fn(d.defense[i]), k ? `d${i}-${k}` : undefined)}
             onRemove={() => edit((d) => void d.defense.splice(i, 1))}
+            onMove={(dir) => edit((d) => moveItem(d.defense, i, dir))}
+            canMoveUp={i > 0}
+            canMoveDown={i < x.defense.length - 1}
           />
         ))}
         {x.defense.length < 3 && (

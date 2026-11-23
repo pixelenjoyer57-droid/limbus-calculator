@@ -1,5 +1,5 @@
 // Skill, coin and passive editors with live game-style previews.
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { DMG_LABEL, DMG_TYPES, LIMITS, SIN_COLOR, SIN_LABEL, SINS } from "../../engine/constants";
 import { COIN_KINDS, SKILL_KINDS, newCoin, type Coin, type CoinType, type Passive, type Skill } from "../../data/schema";
 import { skillPowerRange } from "../../engine/odds";
@@ -59,8 +59,15 @@ export function SkillPreview({ s, level }: { s: Skill; level?: number }) {
 }
 
 export function SkillEditor({
-  s, edit, title, context, onRemove, level, defaultOpen = false,
+  s, edit, title, context, onRemove, level, defaultOpen = false, onMove, canMoveUp = true, canMoveDown = true, removeDisabled, extra,
 }: {
+  /** Reorder buttons (Identity skills). */
+  onMove?: (dir: -1 | 1) => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  removeDisabled?: boolean;
+  /** Extra controls shown at the top of the open body. */
+  extra?: ReactNode;
   s: Skill;
   edit: Edit<Skill>;
   title: string;
@@ -90,10 +97,13 @@ export function SkillEditor({
         {context === "identity" && <span className="badge">×{s.amount} in deck</span>}
         {(coinWarn || lvlWarn || sinWarn) && <span className="badge warn">check</span>}
         <span className="spacer" />
-        {onRemove && <Button icon="trash" small variant="ghost" label={`Delete ${title}`} onClick={onRemove} />}
+        {onMove && <Button icon="up" small variant="ghost" label={`Move ${s.name || "skill"} up`} disabled={!canMoveUp} onClick={() => onMove(-1)} />}
+        {onMove && <Button icon="down" small variant="ghost" label={`Move ${s.name || "skill"} down`} disabled={!canMoveDown} onClick={() => onMove(1)} />}
+        {onRemove && <Button icon="trash" small variant="ghost" label={`Delete ${title}`} disabled={removeDisabled} onClick={onRemove} />}
       </div>
       {open && (
         <div className="skill-body" id={bodyId}>
+          {extra}
           <div className="fields">
             <TextInput label="Name" className="span-2" value={s.name} onChange={(v) => edit((d) => void (d.name = v), "name")} />
             {(context === "defense" || context === "enemy") && (

@@ -152,7 +152,7 @@ export default function HelpPage({ section }: { section?: string }) {
           <li><strong>Resolution:</strong> actions go from fastest to slowest Speed.</li>
           <li><strong>Turn End:</strong> Turn End effects, Burn damage, then Poise/Charge/Tremor lose 1 Count, one-turn statuses expire, and units Staggered last turn recover.</li>
         </ol>
-        <p className="small">"Deck" mode draws skills from a shuffled list with 3 copies of Skill 1, 2 of Skill 2 and 1 of Skill 3 (Skill 3 from Uptie 3), refilled when empty.</p>
+        <p className="small">"Deck" mode draws skills from a shuffled list with 3 copies of Skill 1, 2 of Skill 2 and 1 of Skill 3 (S3 skills from Uptie 3), refilled when empty. Extra skills and variants in the same slot each add their own copies.</p>
       </Card>
 
       <Card>

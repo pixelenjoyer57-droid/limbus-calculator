@@ -142,9 +142,12 @@ function ActionControls({ b, a, onChange, header }: { b: BattleState; a: Planned
           }}
           options={[
             { value: "", label: "— do nothing —" },
-            ...opts.map((k) => {
+            ...opts.map((k, oi) => {
               const s = b.content.skills[k];
-              return { value: k, label: `${s.name} · ${s.sin ? SIN_LABEL[s.sin] : "—"} · ${s.basePower}${s.coinPower >= 0 ? "+" : ""}${s.coinPower}×${s.coins.length}`, group: s.kind === "attack" ? "Skills" : "Defense" };
+              const isSlot = s.slot === "S1" || s.slot === "S2" || s.slot === "S3";
+              const variant = isSlot && opts.slice(0, oi).some((o) => b.content.skills[o]?.slot === s.slot);
+              const pre = isSlot ? `${s.slot}${variant ? " (variant)" : ""}: ` : "";
+              return { value: k, label: `${pre}${s.name} · ${s.sin ? SIN_LABEL[s.sin] : "—"} · ${s.basePower}${s.coinPower >= 0 ? "+" : ""}${s.coinPower}×${s.coins.length}`, group: s.kind === "attack" ? "Skills" : "Defense" };
             }),
             ...egos.flatMap((e) => {
               const ego = b.content.egos[e.key];

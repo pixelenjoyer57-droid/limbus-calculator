@@ -3,7 +3,7 @@
 // checks add bonuses for specific Sinners or factions. Custom coins are honoured.
 import { headsChance } from "./formulas";
 import { powerDist, staticCoins } from "./odds";
-import type { CoinType, EventChoice, Identity } from "../data/schema";
+import { identitySkillSlot, type CoinType, type EventChoice, type Identity } from "../data/schema";
 
 export interface CheckOdds {
   chance: number;
@@ -20,7 +20,7 @@ export function checkOdds(choice: EventChoice, idn: Identity, sp: number, uptie 
   }, 0);
   const p = headsChance(sp, true);
   idn.skills.forEach((s, i) => {
-    if (i === 2 && uptie < 3) return;
+    if (identitySkillSlot(s, i) === "S3" && uptie < 3) return;
     const adv = s.sin && choice.advantageSins.includes(s.sin) ? choice.advantageAmount : 0;
     let chance = 0;
     for (const [power, prob] of powerDist(s.basePower, staticCoins(s, p, coinTypes))) {

@@ -116,7 +116,7 @@ export function clashOdds(a: ClashSide, b: ClashSide): ClashOdds {
 }
 
 /** Static view of a skill's coins (custom coin types applied), for odds and previews. */
-export function staticCoins(skill: Skill, p: number, coinTypes: Record<string, CoinType> = {}): CoinSpec[] {
+export function staticCoins(skill: Pick<Skill, "coins" | "coinPower">, p: number, coinTypes: Record<string, CoinType> = {}): CoinSpec[] {
   return skill.coins.map((c) => {
     const t = c.customType ? coinTypes[c.customType] : undefined;
     const op = c.op ?? t?.op ?? "add";

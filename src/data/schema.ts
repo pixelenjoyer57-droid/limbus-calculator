@@ -232,12 +232,27 @@ export const zSkill = z.object({
   levelMod: int(0, -30, 30),
   atkWeight: int(1, 1, 12),
   amount: int(1, 0, 9), // copies in the skill deck (Sinners only)
+  /** Explicit attack slot of an Identity skill; null = decided by position (S1, S2, S3, then S3). */
+  slot: z.enum(["S1", "S2", "S3"]).nullable().catch(null).default(null),
   unclashable: bool(false),
   indiscriminate: bool(false),
   effects: z.array(zEffect).catch([]).default([]),
   notes: str("", 2000),
 });
 export type Skill = z.infer<typeof zSkill>;
+
+/** Swap the item at `i` with its neighbour (dir -1 up / +1 down) in place. Explicit slots travel with their skill. */
+export function moveItem<T>(list: T[], i: number, dir: -1 | 1): void {
+  const j = i + dir;
+  if (j < 0 || j >= list.length || i < 0 || i >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+}
+
+export type AttackSlot = "S1" | "S2" | "S3";
+/** The slot an Identity attack skill occupies: its explicit `slot`, else by position. */
+export function identitySkillSlot(skill: Pick<Skill, "slot">, index: number): AttackSlot {
+  return skill.slot ?? ((["S1", "S2", "S3"] as const)[index] ?? "S3");
+}
 
 export const PASSIVE_KINDS = ["combat", "support"] as const;
 export const zPassive = z.object({

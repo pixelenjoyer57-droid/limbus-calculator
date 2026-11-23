@@ -8,7 +8,7 @@ export type Side = "ally" | "enemy";
 export type SkillSlot = "S1" | "S2" | "S3" | "DEF" | "EGO" | "ENEMY";
 
 /** A skill compiled into the battle snapshot. `key` is unique inside the battle. */
-export interface CSkill extends Skill {
+export interface CSkill extends Omit<Skill, "slot"> {
   key: string;
   slot: SkillSlot;
   egoKey?: string; // set for E.G.O awakening / corrosion skills

@@ -3,7 +3,7 @@ import { SINS, type Sin, type Sinner } from "./constants";
 import { hpAtLevel } from "./formulas";
 import * as R from "./rng";
 import { BUILTIN_STATUSES } from "./statuses";
-import type { CustomStatus, Ego, Enemy, Gift, Identity, Passive, Skill, Team, Workspace } from "../data/schema";
+import { identitySkillSlot, type CustomStatus, type Ego, type Enemy, type Gift, type Identity, type Passive, type Skill, type Team, type Workspace } from "../data/schema";
 import type { BattleContent, BattleSettings, BattleState, CPassive, CSkill, CStatusDef, SkillSlot, UnitState } from "./types";
 import { fireTeam, fireUnit } from "./effects";
 import { log, stat } from "./state";
@@ -122,8 +122,9 @@ export function identityUnit(
   const maxHp = hpAtLevel(idn.hp, idn.hpPerLevel, idn.level, level);
   const attack: string[] = [];
   idn.skills.forEach((s, i) => {
-    if (i === 2 && uptie < 3) return; // Skill 3 unlocks at Uptie 3
-    attack.push(addSkill(content, `${uid}:S${i + 1}`, s, (["S1", "S2", "S3"][i] ?? "S3") as SkillSlot));
+    const slot = identitySkillSlot(s, i);
+    if (slot === "S3" && uptie < 3) return; // S3 skills unlock at Uptie 3
+    attack.push(addSkill(content, `${uid}:S${i + 1}`, s, slot as SkillSlot));
   });
   const defense = idn.defense.map((s, i) => addSkill(content, `${uid}:D${i}`, s, "DEF"));
   const combat: string[] = [];
