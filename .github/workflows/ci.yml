@@ -1,0 +1,31 @@
+name: Pull request checks
+
+on:
+  pull_request:
+    branches: ["main"]
+
+# Read-only: this workflow only tests and builds. It never deploys, comments or pushes.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    name: test-and-build
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned to the same commit SHAs as pages.yml (the comment is the tag they came from).
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm audit --omit=dev --audit-level=critical
+      - run: npm test
+      - run: npm run build
