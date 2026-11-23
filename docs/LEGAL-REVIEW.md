@@ -6,6 +6,22 @@ Date: 2026-11-23. Prepared by an AI assistant, **not a lawyer; this is a risk as
 
 Making and sharing this app as a **free, non-commercial fan project is low-to-moderate risk** and consistent with the only public Project Moon statement found. The real exposure is not the code but (1) the **official game text** shipped in `public/gamedata` (skill/passive/Gift descriptions), which is Project Moon's copyright and is **not** covered by the wiki's CC BY-SA license, and (2) the **missing visible attribution and license notices** (fixed in this change). Opening a Discord is fine if it stays non-commercial and has simple posted rules. Do not monetise without taking advice and asking Project Moon.
 
+## Decisions adopted by the owner (2026-11-23)
+
+- **D1 adopted:** MIT for the code (`LICENSE`, holder "Sinner's Workshop contributors"), CC BY-SA 4.0 for `public/gamedata/` (`LICENSE-DATA.md`, `public/gamedata/LICENSE.md`) with the carve-out that Project Moon's material is not licensed. README has a License section. `package.json` gets `"license": "MIT"` from the dependency specialist. The drafts in `docs/license-proposals/` are marked adopted and kept for reference (risk 5 below is resolved).
+- **D3 adopted:** stay free and non-commercial (stated in README, About page, CONTRIBUTING.md, NOTICE.md, Discord text). No ads, donations or paid features.
+- **D5 adopted:** contact route for rights holders and reports is the GitHub issue forms in `.github/ISSUE_TEMPLATE/` (`bug_report.yml`, `suggestion.yml`, `rights_holder_request.yml`, `config.yml` with blank issues off and links to the Discord and `SECURITY.md`), or a Discord moderator. Linked from the About page and README.
+- **D6 adopted:** Discord invite https://discord.gg/hZgMnDN5K added to About, README, CONTRIBUTING.md and a small link on the Home page. Paste-ready server text is in `docs/DISCORD-RULES.md`; contribution terms are in `CONTRIBUTING.md`.
+- **D2 and D4 not changed:** the official description text is kept for now (be ready to strip it on request); the export credit field is still open (other specialist's files).
+
+### Still the owner's job
+
+- Post and pin the text from `docs/DISCORD-RULES.md` in the server (welcome, rules, suggestion terms, rights-holder route, safety tip).
+- Appoint at least two moderators, turn on slow-mode in suggestion channels, create a report channel or named moderator contact.
+- Make sure GitHub issues are enabled on the repository and private vulnerability reporting is switched on (SECURITY.md relies on it).
+- Watch for rights-holder requests and act quickly; keep money out of the project and server (no paid roles or donations) without professional advice.
+- Optional: contact Project Moon for explicit permission (D2), and decide on D4.
+
 ## Risks, ranked (likelihood x impact)
 
 1. **Project Moon text in the data set (medium likelihood of a takedown request if the project becomes prominent, medium impact).** The wiki says official content is Project Moon's copyright, used there under fair use. Our app redistributes much of it in bulk, in a downloadable JSON, which is a weaker position than a wiki's transformative use. Mitigation: non-commercial, disclaimer, takedown readiness (done in the About page / README); optional: ship numbers and structure but paraphrase or drop long description strings (`text` fields), or fetch on demand. Decision D2.

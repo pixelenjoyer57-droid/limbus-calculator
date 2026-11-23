@@ -145,6 +145,9 @@ export function Home() {
         <p className="small muted" style={{ marginBottom: 0 }}>
           Data from the <a href="https://limbuscompany.wiki.gg" target="_blank" rel="noopener noreferrer">Limbus Company Wiki</a> (CC BY-SA 4.0). Limbus Company belongs to Project Moon.
         </p>
+        <p className="small muted" style={{ marginBottom: 0 }}>
+          Suggestions? <a href="https://discord.gg/hZgMnDN5K" target="_blank" rel="noopener noreferrer">Join the Discord</a>
+        </p>
       </Card>
 
       {recentItems.length > 0 && (

@@ -4,7 +4,9 @@ import { useGameData } from "../../gamedata";
 
 const WIKI = "https://limbuscompany.wiki.gg";
 const CC = "https://creativecommons.org/licenses/by-sa/4.0/";
-const OFL = "https://openfontlicense.org/open-font-license-official-text/";
+const DISCORD = "https://discord.gg/hZgMnDN5K";
+const ISSUES = "https://github.com/pixelenjoyer57-droid/limbus-calculator/issues/new/choose";
+const OFL ="https://openfontlicense.org/open-font-license-official-text/";
 
 function Ext({ to, children }: { to: string; children: ReactNode }) {
   return (
@@ -31,7 +33,11 @@ export default function AboutPage() {
           fonts from the game are included in this app.
         </p>
         <p>
-          If you are a rights holder and want something changed or removed, say so (see "Suggestions and contact" below) and it will be handled promptly.
+          It is <strong>free and non-commercial</strong>: no ads, no donations and no paid features.
+        </p>
+        <p>
+          The code is under the MIT license and the adapted game data under CC BY-SA 4.0 (see below and <span className="mono">LICENSE</span>, <span className="mono">LICENSE-DATA.md</span> in the repository).
+          If you are a rights holder and want something changed or removed, see "Suggestions and contact" below and it will be handled promptly.
         </p>
       </Card>
 
@@ -89,8 +95,11 @@ export default function AboutPage() {
       <Card>
         <h2 id="about-contact">Suggestions and contact</h2>
         <p>
-          Ideas, bug reports and corrections are welcome. By sending a suggestion you allow it to be used to improve this app without payment or credit obligation. Please do not post other people's private information,
-          and do not post leaked or unreleased game material. Takedown and rights-holder requests: use the same channel and mark the message clearly.
+          Ideas, bug reports and corrections are welcome in the <Ext to={DISCORD}>Discord</Ext> or as <Ext to={ISSUES}>GitHub issues</Ext>. By sending a suggestion you allow it to be used to improve this app without payment or
+          credit obligation. Please do not post other people's private information, and do not post leaked or unreleased game material. The Discord is for people aged 13 or older.
+        </p>
+        <p>
+          <strong>Rights holders:</strong> to request a takedown, correction or change of credit, use the <Ext to={ISSUES}>"Rights holder request" form</Ext> or message a Discord moderator.
         </p>
       </Card>
 

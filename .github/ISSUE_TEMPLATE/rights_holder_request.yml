@@ -1,0 +1,38 @@
+name: Rights holder request
+description: Takedown, correction or attribution request about game material or credits
+labels: ["rights-holder"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sinner's Workshop is a free, non-commercial, fan-made project. We will act promptly on requests from rights holders. You may also ask a Discord moderator instead.
+  - type: input
+    id: who
+    attributes:
+      label: Who you represent
+      description: Your name or organisation and your relation to the material (for example Project Moon, a wiki author).
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What content
+      description: Where it is (file, screen, item name or link).
+    validations:
+      required: true
+  - type: dropdown
+    id: want
+    attributes:
+      label: What you want done
+      options:
+        - Remove the content
+        - Change or correct the content
+        - Change the attribution or credit
+        - Other (explain below)
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: Anything else we should know. This issue is visible to everyone, so do not include private information.

@@ -1,6 +1,6 @@
-# License proposals (NOT in force)
+# License proposals (ADOPTED 2026-11-23: option A, MIT code + CC BY-SA 4.0 data; see LICENSE, LICENSE-DATA.md, CONTRIBUTING.md)
 
-Nothing here is a license of this repository until the owner copies a file to the repository root. These are drafts, not legal advice.
+These drafts are kept for reference only. The adopted files are in the repository root. Drafts, not legal advice.
 
 | Option | Code | Game data | Effect |
 |---|---|---|---|

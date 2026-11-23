@@ -76,4 +76,14 @@ Dark / light / high-contrast themes, text size up to 160%, an extra-readable fon
 
 ## Legal notes
 
-Fan-made, free and non-commercial; **not affiliated with, endorsed by or connected to Project Moon**. Limbus Company and its names, text and characters belong to Project Moon. Rights holders: if you want something changed or removed, please open an issue or contact the maintainer and it will be handled promptly. See [NOTICE.md](NOTICE.md) for data attribution and third-party licenses and [docs/LEGAL-REVIEW.md](docs/LEGAL-REVIEW.md) for the (non-lawyer) review. The repository currently has no license for its own code; that is a pending owner decision (proposals in `docs/license-proposals/`). Privacy: the app keeps everything in your browser, with no analytics or accounts.
+Fan-made, free and non-commercial; **not affiliated with, endorsed by or connected to Project Moon**. Limbus Company and its names, text and characters belong to Project Moon. **Free and non-commercial: no ads, donations or paid features.** Rights holders: if you want something changed or removed, use the ["Rights holder request" form](https://github.com/pixelenjoyer57-droid/limbus-calculator/issues/new/choose) or message a moderator on the [Discord](https://discord.gg/hZgMnDN5K) and it will be handled promptly. See [NOTICE.md](NOTICE.md) for data attribution and third-party licenses and [docs/LEGAL-REVIEW.md](docs/LEGAL-REVIEW.md) for the (non-lawyer) review. Privacy: the app keeps everything in your browser, with no analytics or accounts.
+
+## License
+
+- **Code:** [MIT](LICENSE).
+- **Game data** (`public/gamedata/`): [CC BY-SA 4.0](LICENSE-DATA.md), adapted from the Limbus Company Wiki. This does **not** cover Project Moon's own material (names, skill/passive/Gift text and so on), which remains Project Moon's.
+- Third-party software and full attribution: [NOTICE.md](NOTICE.md).
+
+## Community
+
+Suggestions, questions and custom kits are welcome in the [Discord](https://discord.gg/hZgMnDN5K) or as [GitHub issues](https://github.com/pixelenjoyer57-droid/limbus-calculator/issues/new/choose). See [CONTRIBUTING.md](CONTRIBUTING.md) for the simple contribution terms. Security problems: [SECURITY.md](SECURITY.md).

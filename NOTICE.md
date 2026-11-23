@@ -2,7 +2,7 @@
 
 Sinner's Workshop is a free, non-commercial, fan-made tool. It is **not affiliated with, endorsed by or connected to Project Moon**. Limbus Company and all related names, characters, text and artwork belong to Project Moon. No game art, logos, audio or fonts are included.
 
-(This file is informational; it is not legal advice. The project's own code license is still to be chosen by the owner, see `docs/license-proposals/`.)
+The app's own code is licensed under the MIT license (`LICENSE`); the adapted game data under CC BY-SA 4.0 (`LICENSE-DATA.md`). The project is free and non-commercial: no ads, donations or paid features. (This file is informational; it is not legal advice.)
 
 ## Game data (`public/gamedata/`)
 
