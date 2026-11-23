@@ -15,6 +15,7 @@ const CalcPage = lazy(() => import("../features/calc/CalcPage"));
 const SimPage = lazy(() => import("../features/sim/SimPage"));
 const DataPage = lazy(() => import("../features/data/DataPage"));
 const HelpPage = lazy(() => import("../features/help/HelpPage"));
+const AboutPage = lazy(() => import("../features/about/AboutPage"));
 
 const NAV = [
   { path: "/", label: "Home", icon: "home", short: "Home" },
@@ -26,6 +27,7 @@ const NAV = [
 const NAV_2 = [
   { path: "/data", label: "Save, share & settings", icon: "data" },
   { path: "/help", label: "How combat works", icon: "help" },
+  { path: "/about", label: "About & credits", icon: "help" },
 ];
 
 function isActive(current: string, path: string) {
@@ -65,6 +67,7 @@ function titleFor(parts: string[]): string {
   if (p === "sim") return "Battle simulator";
   if (p === "data") return "Save, share & settings";
   if (p === "help") return "How combat works";
+  if (p === "about") return "About & credits";
   return "Sinner's Workshop";
 }
 
@@ -151,6 +154,9 @@ export function App() {
       break;
     case "help":
       page = <HelpPage section={parts[1]} />;
+      break;
+    case "about":
+      page = <AboutPage />;
       break;
     default:
       page = <Home />;

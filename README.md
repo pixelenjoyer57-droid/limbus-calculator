@@ -38,7 +38,7 @@ Heads chance = 50 + SP · Clash bonus = +1 per 3 levels · SP on Clash win = 10 
 
 The app ships with in-game content imported from the [Limbus Company Wiki](https://limbuscompany.wiki.gg): about 197 Identities (Uptie 4), 114 E.G.O (Threadspin IV), 1158 enemy variants (human enemies and multi-part Abnormalities), 728 E.G.O Gifts and 1266 statuses. Pick them in the calculator, teams, encounters and simulator, or copy one into your workshop to edit it. Effects are converted from the wiki text automatically (roughly half of all effect sentences become simulated rules; the rest is shown as "Not simulated" notes).
 
-- **License / attribution:** the data is from limbuscompany.wiki.gg, licensed **CC BY-SA 4.0**. Limbus Company belongs to Project Moon. No game art is included.
+- **License / attribution:** the data is adapted from the [Limbus Company Wiki](https://limbuscompany.wiki.gg) (limbuscompany.wiki.gg), whose original text is licensed [**CC BY-SA 4.0**](https://creativecommons.org/licenses/by-sa/4.0/). **Changes were made**: pages were converted to compact JSON, values normalised (Uptie 4 / Threadspin IV), effect text partly converted into simulation rules, some entries merged or omitted. The adapted data stays under CC BY-SA 4.0. Official game names and text belong to Project Moon and are not covered by the wiki's license. No game art, logos, audio or fonts are included. Full credits: the in-app **About & credits** page and [NOTICE.md](NOTICE.md).
 - **Refresh it locally:** `npm run gamedata` fetches from the wiki and keeps a local cache in `.cache/wiki`; `npm run gamedata -- --offline` reuses the cache; `npm run gamedata -- --report <file>` writes the top unconverted sentences.
 - The files in `public/gamedata/` are **generated** (one item per line, so diffs stay readable). Don't edit them by hand; they are loaded on demand in the browser.
 
@@ -74,4 +74,6 @@ Dark / light / high-contrast themes, text size up to 160%, an extra-readable fon
 
 ---
 
-Fan-made tool, not affiliated with Project Moon. Limbus Company and its terms belong to their owners.
+## Legal notes
+
+Fan-made, free and non-commercial; **not affiliated with, endorsed by or connected to Project Moon**. Limbus Company and its names, text and characters belong to Project Moon. Rights holders: if you want something changed or removed, please open an issue or contact the maintainer and it will be handled promptly. See [NOTICE.md](NOTICE.md) for data attribution and third-party licenses and [docs/LEGAL-REVIEW.md](docs/LEGAL-REVIEW.md) for the (non-lawyer) review. The repository currently has no license for its own code; that is a pending owner decision (proposals in `docs/license-proposals/`). Privacy: the app keeps everything in your browser, with no analytics or accounts.

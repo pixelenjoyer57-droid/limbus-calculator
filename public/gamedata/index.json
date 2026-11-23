@@ -1,10 +1,11 @@
 {
   "format": 1,
-  "generatedAt": "2026-11-23T19:38:12.227Z",
+  "generatedAt": "2026-11-23T19:55:21.217Z",
   "wikiUpdatedAt": "2026-11-23T10:45:52Z",
   "source": "https://limbuscompany.wiki.gg",
   "license": "CC BY-SA 4.0",
-  "attribution": "Game data from the Limbus Company Wiki (limbuscompany.wiki.gg), licensed CC BY-SA 4.0. Limbus Company belongs to Project Moon.",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "attribution": "Game data from the Limbus Company Wiki (https://limbuscompany.wiki.gg), original text licensed CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/); each item's `source` names its wiki page or data module, whose page history lists the authors. Changes were made: pages were converted to compact JSON, values normalised (Uptie 4 / Threadspin IV), effect text partly converted into simulation rules, some entries merged or omitted. Adapted data is shared under CC BY-SA 4.0. Official game names and text belong to Project Moon (not covered by the wiki license). Fan-made, not affiliated with Project Moon.",
   "counts": {
     "identities": 197,
     "egos": 114,
