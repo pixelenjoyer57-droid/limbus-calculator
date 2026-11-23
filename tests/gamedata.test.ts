@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, beforeAll } from "vitest";
 import { zCustomStatus, zEnemy, zGift, zIdentity, zWorkspace, type Enemy, type Identity } from "../src/data/schema";
 import { useGameData } from "../src/gamedata/store";
+import { runCalc, type Combatant } from "../src/engine/calc";
 import { copyToWorkshop, referencedStatusKeys, withGameData, wikiUrl } from "../src/gamedata/copy";
 
 const read = (f: string) => JSON.parse(readFileSync(`public/gamedata/${f}.json`, "utf8")) as Record<string, unknown>[];
@@ -24,7 +25,8 @@ const ws = () => zWorkspace.parse({ id: "w", name: "t" });
 
 describe("game data", () => {
   it("parses every id as prefixed and url-safe", () => {
-    for (const f of ["identities", "egos", "enemies", "gifts"]) for (const x of read(f)) expect(String(x.id)).toMatch(/^g:[a-z]+:[A-Za-z0-9_.:-]*$/);
+    for (const f of ["identities", "egos", "enemies", "gifts", "statuses"]) for (const x of read(f)) expect(String(x.id)).toMatch(/^g:[a-z]+:[A-Za-z0-9_.:-]*$/);
+    for (const x of read("statuses")) expect(String(x.id).startsWith("g:status:")).toBe(true);
   });
 
   it("copyToWorkshop makes a fresh copy and collects referenced game statuses", () => {
@@ -52,6 +54,16 @@ describe("game data", () => {
     expect(out.identities.map((x) => x.id)).toContain(identities[0].id);
     const have = new Set(out.statuses.map((s) => s.key));
     for (const k of referencedStatusKeys(e)) if (useGameData.getState().statusByKey.has(k)) expect(have.has(k)).toBe(true);
+  });
+
+  it("the damage calculator runs a game Identity against a game enemy", () => {
+    const idn = identities.find((i) => i.skills.length > 0)!;
+    const en = enemies.find((e) => e.skills.length > 0 || e.parts.some((p) => p.skills.length > 0))!;
+    const merged = withGameData(ws(), [idn.id, en.id]);
+    const unit = (kind: "identity" | "enemy", id: string, skill: string): Combatant => ({ kind, id, level: 0, uptie: 4, egos: {}, sp: 0, hpPct: 100, stagger: 0, speed: 3, statuses: [], skill, part: 0, resonance: 0 });
+    const r = runCalc({ workspace: merged, attacker: unit("identity", idn.id, "S1"), defender: unit("enemy", en.id, ""), exchange: "oneSided", turnEnd: false, runs: 100, seed: 3, gifts: [] });
+    expect(r.damageToDefender.max).toBeGreaterThan(0);
+    expect(r.damageToDefender.mean).toBeGreaterThan(0);
   });
 
   it("builds wiki links", () => {

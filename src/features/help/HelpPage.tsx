@@ -3,6 +3,8 @@ import { BUILTIN_STATUS_LIST, KEYWORD_STATUSES, TREMOR_TYPE_INFO, TREMOR_TYPES }
 import { ABSOLUTE_RESONANCE_BONUS, RESONANCE_BONUS, SIN_LABEL } from "../../engine/constants";
 import { levelAdvantage } from "../../engine/formulas";
 import { Card } from "../../ui/layout";
+import { useGameData } from "../../gamedata";
+
 
 const WIKI = "https://limbuscompany.wiki.gg/wiki/";
 const SECTIONS = [
@@ -16,6 +18,7 @@ const SECTIONS = [
   ["resonance", "Sin Resonance & passives"],
   ["ego", "E.G.O"],
   ["statuses", "Status effects"],
+  ["gamedata", "Game data from the wiki"],
   ["limits", "What the simulator simplifies"],
 ] as const;
 
@@ -31,6 +34,13 @@ export default function HelpPage({ section }: { section?: string }) {
   useEffect(() => {
     if (section) document.getElementById("help-" + section)?.scrollIntoView();
   }, [section]);
+  const gameIndex = useGameData((s) => s.index);
+  const ensureIndex = useGameData((s) => s.ensureIndex);
+  useEffect(() => void ensureIndex(), [ensureIndex]);
+  const c = gameIndex?.counts;
+  const covRaw = gameIndex?.coverage;
+  const cov = covRaw && { identity: Math.round(covRaw.identity.pct), ego: Math.round(covRaw.ego.pct), enemy: Math.round(covRaw.enemy.pct), gift: Math.round(covRaw.gift.pct) };
+  const wikiDate = gameIndex ? gameIndex.wikiUpdatedAt.slice(0, 10) : "…";
   const keyword = BUILTIN_STATUS_LIST.filter((d) => (KEYWORD_STATUSES as readonly string[]).includes(d.key));
   const general = BUILTIN_STATUS_LIST.filter((d) => !(KEYWORD_STATUSES as readonly string[]).includes(d.key) && !d.dmgType && !d.sinFilter);
   return (
@@ -230,6 +240,23 @@ export default function HelpPage({ section }: { section?: string }) {
       </Card>
 
       <Card>
+        <h2 id="help-gamedata">Game data from the wiki</h2>
+        <ul>
+          <li>
+            <strong>Where from:</strong> the <a href={"https://limbuscompany.wiki.gg"} target="_blank" rel="noreferrer">Limbus Company Wiki</a>, licensed CC BY-SA 4.0 (wiki last updated {wikiDate}). Limbus Company belongs to Project Moon.
+          </li>
+          <li><strong>Included:</strong> {c ? `${c.identities} Identities, ${c.egos} E.G.O, ${c.enemies} enemy variants, ${c.gifts} E.G.O Gifts` : "Identities, E.G.O, enemies and E.G.O Gifts"}. Pick them anywhere you'd pick your own content ("From the game" tab).</li>
+          <li>Identities use their Uptie 4 values; E.G.O use Threadspin IV values.</li>
+          <li>Enemies list several variants (story, Mirror Dungeon…). Their HP scales with the level you set.</li>
+          <li>Abnormality parts are Staggered by their own thresholds.</li>
+          <li>
+            <strong>Effects are converted from the wiki text automatically.</strong> About half become simulated rules{cov ? ` (Identities ${cov.identity}%, enemies ${cov.enemy}%, E.G.O ${cov.ego}%, gifts only ${cov.gift}%)` : ""}. The rest is shown as "Not simulated" notes and does nothing in a fight.
+          </li>
+          <li><strong>Want to fix something?</strong> Copy the item to your workshop; the copy is yours to edit, including its rules.</li>
+        </ul>
+      </Card>
+
+      <Card>
         <h2 id="help-limits">What the simulator simplifies</h2>
         <p>The damage math, Clashes, coins, statuses and Stagger follow the wiki exactly. Some parts of a real fight are simplified — keep these in mind when reading battle results:</p>
         <ul>
@@ -238,7 +265,7 @@ export default function HelpPage({ section }: { section?: string }) {
           <li>E.G.O Corrosion at −45 SP is treated as Panic (no action); Corroded E.G.O on use is rolled normally.</li>
           <li>Low Morale is applied every time SP is −30 or lower (the game says "a chance").</li>
           <li>Paralyze uses one Count per coin tossed (Clash rounds included).</li>
-          <li>Enemy HP is used as written; the level override changes Offense/Defense Level only.</li>
+          <li>The level override changes Offense/Defense Level, and scales HP for enemies that have an "HP per level" value (all enemies from the game do).</li>
           <li>Skill Slot weight, Aggro, Assist attacks/defense, Duality and Joint Combo are not modelled.</li>
           <li>Effects you write as "Note only" are shown in text but not simulated.</li>
         </ul>

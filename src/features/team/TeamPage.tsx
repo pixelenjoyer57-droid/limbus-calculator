@@ -9,14 +9,14 @@ import { useSession } from "../../store/session";
 import { toast } from "../../store/toast";
 import { href, navigate } from "../../lib/router";
 import { Button, Check, NumberInput, Select, TextInput } from "../../ui/controls";
-import { EmptyState, Notice, Section } from "../../ui/layout";
+import { EmptyState, Section } from "../../ui/layout";
 import { Icon } from "../../ui/icons";
+import { ContentPicker, useResolvedItem } from "../../ui/ContentPicker";
+import type { Ego, Identity } from "../../data/schema";
 
 const emptyMember = (): TeamMember => ({ identityId: null, level: 65, uptie: 4, egos: { ZAYIN: null, TETH: null, HE: null, WAW: null, ALEPH: null } });
 
 function MemberCard({ team, sinner, edit }: { team: Team; sinner: Sinner; edit: (fn: (d: Draft<Team>) => void, key?: string) => void }) {
-  const identities = useWorkspace((s) => s.ws.identities.filter((i) => i.sinner === sinner));
-  const egos = useWorkspace((s) => s.ws.egos.filter((e) => e.sinner === sinner));
   const m = team.members[sinner] ?? emptyMember();
   const deployed = team.deploy.includes(sinner);
   const order = team.deploy.indexOf(sinner);
@@ -26,17 +26,20 @@ function MemberCard({ team, sinner, edit }: { team: Team; sinner: Sinner; edit: 
       if (!d.members[sinner]) d.members[sinner] = emptyMember();
       fn(d.members[sinner]!);
     }, key);
-  const idn = identities.find((i) => i.id === m.identityId);
+  const idn = useResolvedItem("identity", m.identityId).item;
   return (
     <div className="unit" style={{ borderColor: deployed ? "var(--gold)" : undefined }}>
       <div className="row">
         <strong style={{ flex: 1 }}>{sinner}</strong>
         {deployed && <span className="badge gold">#{order + 1} deployed</span>}
       </div>
-      <Select
+      <ContentPicker
+        kind="identity"
         label="Identity"
-        value={m.identityId ?? ""}
-        placeholder={identities.length ? "— none —" : "— no Identities for this Sinner yet —"}
+        value={m.identityId}
+        allowNone
+        noneLabel="— none —"
+        filter={(i: Identity) => i.sinner === sinner}
         onChange={(v) =>
           edit((d) => {
             if (!d.members[sinner]) d.members[sinner] = emptyMember();
@@ -45,7 +48,6 @@ function MemberCard({ team, sinner, edit }: { team: Team; sinner: Sinner; edit: 
             if (!v) d.deploy = d.deploy.filter((s) => s !== sinner);
           })
         }
-        options={identities.map((i) => ({ value: i.id, label: i.name }))}
       />
       {idn && (
         <>
@@ -67,13 +69,15 @@ function MemberCard({ team, sinner, edit }: { team: Team; sinner: Sinner; edit: 
               <NumberInput label="Level" value={m.level} onChange={(n) => set((d) => void (d.level = n), "lvl" + sinner)} min={1} max={200} />
               <NumberInput label="Uptie" value={m.uptie} onChange={(n) => set((d) => void (d.uptie = n))} min={1} max={4} hint="S3 at 3, Combat passive at 2, Support at 3" />
               {EGO_GRADES.map((g) => (
-                <Select
+                <ContentPicker
                   key={g}
+                  kind="ego"
                   label={`${g} E.G.O`}
-                  value={m.egos[g] ?? ""}
-                  placeholder="— none —"
+                  value={m.egos[g] ?? null}
+                  allowNone
+                  noneLabel="— none —"
+                  filter={(e: Ego) => e.sinner === sinner && e.grade === g}
                   onChange={(v) => set((d) => void (d.egos[g] = v || null))}
-                  options={egos.filter((e) => e.grade === g).map((e) => ({ value: e.id, label: e.name }))}
                 />
               ))}
             </div>
@@ -84,9 +88,28 @@ function MemberCard({ team, sinner, edit }: { team: Team; sinner: Sinner; edit: 
   );
 }
 
+function TeamGiftRow({ giftId, level, onLevel, onPick, onRemove }: { giftId: string; level: number; onLevel: (n: number) => void; onPick: (id: string | null) => void; onRemove: () => void }) {
+  const gift = useResolvedItem("gift", giftId).item;
+  return (
+    <div className="row" style={{ alignItems: "flex-end", marginBottom: 6 }}>
+      <div style={{ flex: 1, minWidth: 180 }}>
+        <ContentPicker kind="gift" label="Gift" value={giftId} onChange={onPick} />
+      </div>
+      <div style={{ width: 150 }}>
+        <Select
+          label="Enhanced"
+          value={String(level)}
+          onChange={(v) => onLevel(Number(v))}
+          options={[{ value: "0", label: "Base" }, { value: "1", label: "+", disabled: !gift?.plus1 }, { value: "2", label: "++", disabled: !gift?.plus2 }]}
+        />
+      </div>
+      <Button icon="trash" small variant="ghost" label="Remove gift" onClick={onRemove} />
+    </div>
+  );
+}
+
 function TeamEditor({ team }: { team: Team }) {
   const upsert = useWorkspace((s) => s.upsert);
-  const gifts = useWorkspace((s) => s.ws.gifts);
   const [showAll, setShowAll] = useState(false);
   const edit = (fn: (d: Draft<Team>) => void, key?: string) => {
     const next = produce(team, fn);
@@ -109,7 +132,7 @@ function TeamEditor({ team }: { team: Team }) {
 
       <Section id="team-members" title="Sinners" summary={`${team.deploy.length} deployed`}>
         <div className="row" style={{ marginBottom: 10 }}>
-          <span className="muted small" style={{ flex: 1 }}>Pick an Identity for each Sinner you want to use. Only Identities you've built for that Sinner appear.</span>
+          <span className="muted small" style={{ flex: 1 }}>Pick an Identity for each Sinner you want to use: one you built, or any Identity from the game (the picker has both).</span>
           <Button small onClick={() => setShowAll(!showAll)}>
             {showAll ? "Show only used Sinners" : "Show all 12 Sinners"}
           </Button>
@@ -137,31 +160,12 @@ function TeamEditor({ team }: { team: Team }) {
       </Section>
 
       <Section id="team-gifts" title="E.G.O Gifts" summary={`${team.gifts.length} gift${team.gifts.length === 1 ? "" : "s"}`}>
-        {!gifts.length && <Notice kind="info">No gifts yet. Make some in the Builder → E.G.O Gifts.</Notice>}
-        {team.gifts.map((g, i) => {
-          const gift = gifts.find((x) => x.id === g.giftId);
-          return (
-            <div className="row" key={i} style={{ alignItems: "flex-end", marginBottom: 6 }}>
-              <div style={{ flex: 1, minWidth: 180 }}>
-                <Select label="Gift" value={g.giftId} onChange={(v) => edit((d) => void (d.gifts[i].giftId = v))} options={gifts.map((x) => ({ value: x.id, label: `${x.name} (${x.tier})` }))} />
-              </div>
-              <div style={{ width: 150 }}>
-                <Select
-                  label="Enhanced"
-                  value={String(g.level)}
-                  onChange={(v) => edit((d) => void (d.gifts[i].level = Number(v)))}
-                  options={[{ value: "0", label: "Base" }, { value: "1", label: "+", disabled: !gift?.plus1 }, { value: "2", label: "++", disabled: !gift?.plus2 }]}
-                />
-              </div>
-              <Button icon="trash" small variant="ghost" label="Remove gift" onClick={() => edit((d) => void d.gifts.splice(i, 1))} />
-            </div>
-          );
-        })}
-        {gifts.length > 0 && (
-          <Button small icon="plus" onClick={() => edit((d) => void d.gifts.push({ giftId: gifts.find((g) => !team.gifts.some((t) => t.giftId === g.id))?.id ?? gifts[0].id, level: 0 }))}>
-            Add gift
-          </Button>
-        )}
+        {team.gifts.map((g, i) => (
+          <TeamGiftRow key={i} giftId={g.giftId} level={g.level} onLevel={(n) => edit((d) => void (d.gifts[i].level = n))} onPick={(v) => v && edit((d) => void (d.gifts[i].giftId = v))} onRemove={() => edit((d) => void d.gifts.splice(i, 1))} />
+        ))}
+        <div style={{ maxWidth: 360 }}>
+          <ContentPicker kind="gift" label="Add a gift" value={null} onChange={(v) => v && edit((d) => void d.gifts.push({ giftId: v, level: 0 }))} />
+        </div>
       </Section>
 
       <Section id="team-res" title="Starting E.G.O resources" defaultOpen={false} summary={SINS.filter((s) => team.startResources[s]).map((s) => `${SIN_LABEL[s]} ${team.startResources[s]}`).join(", ") || "none"}>

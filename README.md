@@ -34,6 +34,14 @@ Heads chance = 50 + SP · Clash bonus = +1 per 3 levels · SP on Clash win = 10 
 
 `tests/` checks these against the wiki's own worked examples (e.g. +37% for Slash ×1.5 & Wrath ×0.75, +250% at Stagger++ with ×1.5, ×1.44 for crit + 2 Fragile) and hand-calculated fights. The in-app **How combat works** page lists everything, including what the simulator simplifies (enemy AI, Low Morale chance, E.G.O Corrosion at −45 SP, slot weight / Aggro).
 
+## Game data
+
+The app ships with in-game content imported from the [Limbus Company Wiki](https://limbuscompany.wiki.gg): about 197 Identities (Uptie 4), 114 E.G.O (Threadspin IV), 1158 enemy variants (human enemies and multi-part Abnormalities), 728 E.G.O Gifts and 1266 statuses. Pick them in the calculator, teams, encounters and simulator, or copy one into your workshop to edit it. Effects are converted from the wiki text automatically (roughly half of all effect sentences become simulated rules; the rest is shown as "Not simulated" notes).
+
+- **License / attribution:** the data is from limbuscompany.wiki.gg, licensed **CC BY-SA 4.0**. Limbus Company belongs to Project Moon. No game art is included.
+- **Refresh it locally:** `npm run gamedata` fetches from the wiki and keeps a local cache in `.cache/wiki`; `npm run gamedata -- --offline` reuses the cache; `npm run gamedata -- --report <file>` writes the top unconverted sentences.
+- The files in `public/gamedata/` are **generated** (one item per line, so diffs stay readable). Don't edit them by hand; they are loaded on demand in the browser.
+
 ## Development
 
 ```bash

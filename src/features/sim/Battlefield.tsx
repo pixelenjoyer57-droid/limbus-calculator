@@ -37,10 +37,10 @@ function targetText(b: BattleState, a: PlannedAction, many: boolean): string | n
     const o = b.plan.find((x) => x.id === a.targetAction);
     const ou = o && b.units.find((x) => x.uid === o.uid);
     const os = o?.skill ? b.content.skills[o.skill] : undefined;
-    if (ou) return `${pre}⚔ clashes ${ou.name}'s ${os?.name ?? "action"}`;
+    if (ou) return `${pre}⚔ clashes ${partName(ou)}'s ${os?.name ?? "action"}`;
   }
   const t = b.units.find((x) => x.uid === a.target);
-  return t ? `${pre}→ ${t.name}` : null;
+  return t ? `${pre}→ ${partName(t)}` : null;
 }
 
 function targetUidOf(b: BattleState, a: PlannedAction | undefined): string | null {

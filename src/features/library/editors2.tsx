@@ -13,11 +13,11 @@ import { StatusSelect, useStatusName } from "../../ui/game";
 import { useWorkspace } from "../../store/workspace";
 import { navigate } from "../../lib/router";
 import { RulesEditor, type Edit } from "./rules";
+import { ContentPicker } from "../../ui/ContentPicker";
+import { useGameWorkspace } from "../../gamedata";
 
 // ---------------------------------------------------------------------------------
 export function EncounterEditor({ item: x, edit }: { item: Encounter; edit: Edit<Encounter> }) {
-  const enemies = useWorkspace((s) => s.ws.enemies);
-  const opts = enemies.map((e) => ({ value: e.id, label: `${e.name} (Lv ${e.level})` }));
   const total = x.waves.reduce((a, w) => a + w.enemies.reduce((b, e) => b + e.count, 0), 0);
   return (
     <div className="stack">
@@ -44,7 +44,6 @@ export function EncounterEditor({ item: x, edit }: { item: Encounter; edit: Edit
         </div>
       </Section>
       <Section id="enc-waves" title="Waves" summary={`${x.waves.length} wave${x.waves.length === 1 ? "" : "s"} · ${total} enemies`}>
-        {!enemies.length && <Notice kind="info">Make an enemy first (Builder → Enemies), then add it here.</Notice>}
         {x.waves.map((w, wi) => (
           <div className="coin-row" key={w.id}>
             <div className="row">
@@ -55,7 +54,7 @@ export function EncounterEditor({ item: x, edit }: { item: Encounter; edit: Edit
             {w.enemies.map((e, ei) => (
               <div className="row" key={ei} style={{ alignItems: "flex-end", marginTop: 8 }}>
                 <div style={{ flex: 2, minWidth: 180 }}>
-                  <Select label="Enemy" value={e.enemyId} placeholder="Pick an enemy" onChange={(v) => edit((d) => void (d.waves[wi].enemies[ei].enemyId = v))} options={opts} />
+                  <ContentPicker kind="enemy" label="Enemy" value={e.enemyId || null} onChange={(v) => edit((d) => void (d.waves[wi].enemies[ei].enemyId = v ?? ""))} />
                 </div>
                 <div style={{ width: 130 }}>
                   <NumberInput label="How many" value={e.count} onChange={(n) => edit((d) => void (d.waves[wi].enemies[ei].count = n))} min={1} max={10} />
@@ -66,9 +65,9 @@ export function EncounterEditor({ item: x, edit }: { item: Encounter; edit: Edit
                 <Button icon="trash" small variant="ghost" label="Remove enemy" onClick={() => edit((d) => void d.waves[wi].enemies.splice(ei, 1))} />
               </div>
             ))}
-            <Button small icon="plus" onClick={() => edit((d) => void d.waves[wi].enemies.push({ enemyId: enemies[0]?.id ?? "", count: 1, level: 0 }))} className="" >
-              Add enemy
-            </Button>
+            <div style={{ maxWidth: 360, marginTop: 8 }}>
+              <ContentPicker kind="enemy" label="Add an enemy" value={null} onChange={(v) => v && edit((d) => void d.waves[wi].enemies.push({ enemyId: v, count: 1, level: 0 }))} />
+            </div>
           </div>
         ))}
         <div className="row" style={{ marginTop: 10 }}>
@@ -80,7 +79,7 @@ export function EncounterEditor({ item: x, edit }: { item: Encounter; edit: Edit
             Fight this encounter
           </Button>
         </div>
-        <p className="small muted">The next wave arrives at the start of the turn after the previous wave is defeated. Enemy HP is used as written (it does not scale with the level override).</p>
+        <p className="small muted">The next wave arrives at the start of the turn after the previous wave is defeated. Overriding the level scales enemy HP when the enemy has an "HP per level" value (every enemy from the game does).</p>
       </Section>
       <Section id="enc-notes" title="Notes" defaultOpen={false}>
         <TextArea label="Notes" value={x.notes} onChange={(v) => edit((d) => void (d.notes = v), "notes")} rows={4} />
@@ -195,7 +194,6 @@ const OUTCOME_LABEL: Record<(typeof OUTCOME_KINDS)[number], string> = {
 };
 
 function OutcomeEditor({ o, edit, onRemove }: { o: Outcome; edit: Edit<Outcome>; onRemove: () => void }) {
-  const gifts = useWorkspace((s) => s.ws.gifts);
   return (
     <div className="rule-item">
       <div className="fields">
@@ -209,7 +207,7 @@ function OutcomeEditor({ o, edit, onRemove }: { o: Outcome; edit: Edit<Outcome>;
         {o.kind === "hp" && <Check label="Percent of max HP" checked={o.pct} onChange={(v) => edit((d) => void (d.pct = v))} />}
         {o.kind === "status" && <StatusSelect value={o.status} onChange={(v) => edit((d) => void (d.status = v))} />}
         {o.kind === "resource" && <Select label="Sin" value={o.sin} onChange={(v) => edit((d) => void (d.sin = v))} options={SINS.map((s) => ({ value: s, label: SIN_LABEL[s] }))} />}
-        {o.kind === "gift" && <Select label="Gift" value={o.giftId} placeholder="Pick a gift" onChange={(v) => edit((d) => void (d.giftId = v))} options={gifts.map((g) => ({ value: g.id, label: g.name }))} />}
+        {o.kind === "gift" && <ContentPicker kind="gift" label="Gift" value={o.giftId || null} onChange={(v) => edit((d) => void (d.giftId = v ?? ""))} />}
         <TextInput label="Text shown" className="full" value={o.text} onChange={(v) => edit((d) => void (d.text = v), "text")} maxLength={600} />
       </div>
       <Button icon="trash" small variant="ghost" label="Remove outcome" onClick={onRemove} />
@@ -316,9 +314,12 @@ function describeOutcome(o: Outcome, giftName: (id: string) => string, statusNam
 }
 
 function EventTester({ ev }: { ev: GameEvent }) {
-  const teams = useWorkspace((s) => s.ws.teams);
-  const identities = useWorkspace((s) => s.ws.identities);
-  const gifts = useWorkspace((s) => s.ws.gifts);
+  const wsRaw = useWorkspace((s) => s.ws);
+  const teams = wsRaw.teams;
+  const outcomeGifts = ev.choices.flatMap((c) => [...c.success, ...c.failure]).map((o) => (o.kind === "gift" ? o.giftId : "")).filter(Boolean);
+  const merged = useGameWorkspace(wsRaw, outcomeGifts);
+  const identities = merged.identities;
+  const gifts = merged.gifts;
   const statusName = useStatusName();
   const coinTypeList = useWorkspace((s) => s.ws.coinTypes);
   const coinTypes = Object.fromEntries(coinTypeList.map((t) => [t.key, t]));

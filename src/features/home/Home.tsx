@@ -6,6 +6,8 @@ import { Icon } from "../../ui/icons";
 import { Button } from "../../ui/controls";
 import { Card, Notice } from "../../ui/layout";
 import { KIND_INFO } from "../library/kinds";
+import { useGameData } from "../../gamedata";
+import { useEffect } from "react";
 
 function ago(t: number) {
   const m = Math.round((Date.now() - t) / 60000);
@@ -24,6 +26,15 @@ export function Home() {
   const dismissed = useSession((s) => s.dismissed);
   const setSession = useSession((s) => s.set);
   const create = useWorkspace((s) => s.create);
+  const gameIndex = useGameData((s) => s.index);
+  const ensureIndex = useGameData((s) => s.ensureIndex);
+  const open = useSession((s) => s.open);
+  useEffect(() => void ensureIndex(), [ensureIndex]);
+  const c = gameIndex?.counts;
+  const browseGame = () => {
+    setSession({ open: { ...open, "lib.game.identity": true } });
+    navigate("/build/identities");
+  };
 
   const recentItems = recent
     .map((r) => {
@@ -125,6 +136,16 @@ export function Home() {
           </span>
         </a>
       </div>
+
+      <Card title="From the game">
+        <p className="muted" style={{ marginTop: 0 }}>
+          {c ? `${c.identities} Identities · ${c.egos} E.G.O · ${c.enemies} enemies · ${c.gifts} E.G.O Gifts` : "Identities, E.G.O, enemies and E.G.O Gifts"} from the game are ready to use. Pick them in the calculator, teams, encounters and the simulator, or copy one to edit it.
+        </p>
+        <Button icon="search" onClick={browseGame}>Browse game content</Button>
+        <p className="small muted" style={{ marginBottom: 0 }}>
+          Data from the <a href="https://limbuscompany.wiki.gg" target="_blank" rel="noreferrer">Limbus Company Wiki</a> (CC BY-SA 4.0). Limbus Company belongs to Project Moon.
+        </p>
+      </Card>
 
       {recentItems.length > 0 && (
         <Card title="Continue where you left off">

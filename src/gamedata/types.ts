@@ -30,6 +30,7 @@ export interface GameIndex {
   license: string;
   attribution: string;
   counts: Record<string, number>;
+  coverage?: Record<string, { sentences: number; simulated: number; pct: number }>;
 }
 
 export type LoadStatus = "idle" | "loading" | "ready" | "error";

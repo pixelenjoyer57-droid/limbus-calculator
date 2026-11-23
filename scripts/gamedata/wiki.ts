@@ -53,7 +53,8 @@ export async function pageTexts(titles: string[], cacheDir?: string, offline = f
   const todo: string[] = [];
   const cacheFile = (t: string) => join(cacheDir!, encodeURIComponent(t).replace(/%/g, "_") + ".json");
   for (const t of titles) {
-    if (cacheDir && existsSync(cacheFile(t))) out.push(JSON.parse(readFileSync(cacheFile(t), "utf8")));
+    // online runs always fetch fresh pages (and refresh the cache); --offline reads the cache
+    if (offline && cacheDir && existsSync(cacheFile(t))) out.push(JSON.parse(readFileSync(cacheFile(t), "utf8")));
     else todo.push(t);
   }
   if (cacheDir) mkdirSync(cacheDir, { recursive: true });

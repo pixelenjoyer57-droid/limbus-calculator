@@ -10,6 +10,8 @@ import { useWorkspace } from "../../store/workspace";
 import { useSession, type SimForm } from "../../store/session";
 import { toast } from "../../store/toast";
 import { runBatchAsync } from "../../lib/worker";
+import { engineWorkspace } from "../../gamedata";
+import { ContentPicker } from "../../ui/ContentPicker";
 import { href, navigate } from "../../lib/router";
 import { Button, Check, NumberInput, Segmented, Select } from "../../ui/controls";
 import { Bar, Card, EmptyState, Notice, Stat } from "../../ui/layout";
@@ -33,11 +35,13 @@ function defaultForm(ws: Workspace): SimForm {
   };
 }
 
-function setupFor(ws: Workspace, f: SimForm) {
+/** Builds the engine set-up; loads the game data first so teams/encounters/quick lists that use game items work. */
+async function setupFor(ws: Workspace, f: SimForm) {
   const team = ws.teams.find((t) => t.id === f.teamId);
   if (!team) return null;
+  const refs = f.source === "quick" ? f.quick.map((q) => q.enemyId) : [];
   return {
-    workspace: ws,
+    workspace: await engineWorkspace(ws, refs),
     team,
     encounterId: f.source === "encounter" ? f.encounterId : null,
     enemies: f.source === "quick" ? f.quick : undefined,
@@ -432,26 +436,30 @@ export default function SimPage() {
 
   const setBattle = (b: BattleState | null) => setSession({ battle: b });
 
-  const start = (seed?: number) => {
-    const setup = setupFor(ws, form);
-    if (!setup) {
-      toast("Pick a team first.", "error");
-      return;
+  const start = async (seed?: number) => {
+    try {
+      const setup = await setupFor(ws, form);
+      if (!setup) {
+        toast("Pick a team first.", "error");
+        return;
+      }
+      const { battle: b, warnings } = createBattle({ ...setup, seed });
+      for (const w of warnings) toast(w, "info");
+      setBattle(b);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Couldn't start the fight.", "error");
     }
-    const { battle: b, warnings } = createBattle({ ...setup, seed });
-    for (const w of warnings) toast(w, "info");
-    setBattle(b);
   };
 
   const runMany = async () => {
-    const setup = setupFor(ws, form);
-    if (!setup) {
-      toast("Pick a team first.", "error");
-      return;
-    }
     setProgress(0);
     setBatch(null);
     try {
+      const setup = await setupFor(ws, form);
+      if (!setup) {
+        toast("Pick a team first.", "error");
+        return;
+      }
       const r = await runBatchAsync(setup, { runs: form.runs, maxTurns: form.maxTurns, useEgo: form.useEgo, seed: 777 }, setProgress);
       setBatch(r);
     } catch (e) {
@@ -461,7 +469,7 @@ export default function SimPage() {
     }
   };
 
-  if (battle) return <BattleView b={battle} setBattle={setBattle} onNew={() => setBattle(null)} onRestart={() => start(battle.seed)} />;
+  if (battle) return <BattleView b={battle} setBattle={setBattle} onNew={() => setBattle(null)} onRestart={() => void start(battle.seed)} />;
 
   const team = ws.teams.find((t) => t.id === form.teamId);
   return (
@@ -486,7 +494,7 @@ export default function SimPage() {
               {form.quick.map((q, i) => (
                 <div className="row" key={i} style={{ alignItems: "flex-end", marginBottom: 6 }}>
                   <div style={{ flex: 2, minWidth: 180 }}>
-                    <Select label="Enemy" value={q.enemyId} onChange={(v) => setForm({ ...form, quick: form.quick.map((x, j) => (j === i ? { ...x, enemyId: v } : x)) })} options={ws.enemies.map((e) => ({ value: e.id, label: `${e.name} (Lv ${e.level})` }))} />
+                    <ContentPicker kind="enemy" label="Enemy" value={q.enemyId || null} onChange={(v) => v && setForm({ ...form, quick: form.quick.map((x, j) => (j === i ? { ...x, enemyId: v } : x)) })} />
                   </div>
                   <div style={{ width: 130 }}>
                     <NumberInput label="How many" value={q.count} onChange={(n) => setForm({ ...form, quick: form.quick.map((x, j) => (j === i ? { ...x, count: n } : x)) })} min={1} max={10} />
@@ -497,11 +505,9 @@ export default function SimPage() {
                   <Button icon="trash" small variant="ghost" label="Remove" onClick={() => setForm({ ...form, quick: form.quick.filter((_, j) => j !== i) })} />
                 </div>
               ))}
-              {ws.enemies.length > 0 && (
-                <Button small icon="plus" onClick={() => setForm({ ...form, quick: [...form.quick, { enemyId: ws.enemies[0].id, level: 0, count: 1 }] })}>
-                  Add enemy
-                </Button>
-              )}
+              <div style={{ maxWidth: 360 }}>
+                <ContentPicker kind="enemy" label="Add an enemy" value={null} onChange={(v) => v && setForm({ ...form, quick: [...form.quick, { enemyId: v, level: 0, count: 1 }] })} />
+              </div>
             </div>
           )}
           <div className="divider" />
@@ -509,7 +515,7 @@ export default function SimPage() {
             <div>
               <h3>Play it turn by turn</h3>
               <p className="small muted">You choose skills and targets each turn, see every coin flip and the damage math.</p>
-              <Button variant="primary" icon="play" onClick={() => start()}>
+              <Button variant="primary" icon="play" onClick={() => void start()}>
                 Start the fight
               </Button>
             </div>

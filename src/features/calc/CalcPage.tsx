@@ -4,13 +4,15 @@ import type { CalcResult, Combatant } from "../../engine/calc";
 import type { HitRecord } from "../../engine/combat";
 import { BUILTIN_STATUSES } from "../../engine/statuses";
 import { useWorkspace } from "../../store/workspace";
+import { engineWorkspace, useGameItems, useGameWorkspace } from "../../gamedata";
+import { ContentPicker, useItemName } from "../../ui/ContentPicker";
 import { useSession, type CalcForm } from "../../store/session";
 import { runCalcAsync } from "../../lib/worker";
 import { Button, Check, NumberInput, Segmented, Select } from "../../ui/controls";
 import { Card, Notice, Stat, Tabs } from "../../ui/layout";
 import { StatusSelect, useStatusName } from "../../ui/game";
 import { LogView } from "../sim/LogView";
-import type { Workspace } from "../../data/schema";
+import { identitySkillSlot, type Workspace } from "../../data/schema";
 import { skillSummary } from "../library/skills";
 
 const pct = (x: number) => `${Math.round(x * 1000) / 10}%`;
@@ -33,11 +35,22 @@ function defaultForm(ws: Workspace): CalcForm {
   };
 }
 
+/** Every game id a calculator form needs (units, equipped E.G.O, gifts). */
+function formRefs(f: CalcForm): string[] {
+  return [f.attacker.id, f.defender.id, ...Object.values(f.attacker.egos), ...Object.values(f.defender.egos), ...f.giftIds].filter((x): x is string => !!x && x.startsWith("g:"));
+}
+
 function skillOptions(ws: Workspace, c: Combatant): { value: string; label: string; group?: string }[] {
   if (c.kind === "identity") {
     const idn = ws.identities.find((i) => i.id === c.id);
     if (!idn) return [];
-    const out = idn.skills.map((s, i) => ({ value: `S${i + 1}`, label: `Skill ${i + 1}: ${s.name} (${skillSummary(s)})`, group: "Attack skills" }));
+    const seen = new Set<string>();
+    const out = idn.skills.map((s, i) => {
+      const slot = identitySkillSlot(s, i);
+      const variant = seen.has(slot);
+      seen.add(slot);
+      return { value: `S${i + 1}`, label: `${slot}${variant ? " (variant)" : ""}: ${s.name} (${skillSummary(s)})`, group: "Attack skills" };
+    });
     idn.defense.forEach((s, i) => out.push({ value: `D${i}`, label: `${s.name} (${s.kind}${s.clashable ? ", clashable" : ""})`, group: "Defense" }));
     for (const e of ws.egos.filter((x) => x.sinner === idn.sinner)) {
       out.push({ value: `EGO:${e.id}:A`, label: `${e.name} (${e.grade}) Awakening`, group: "E.G.O" });
@@ -63,10 +76,10 @@ function uiSkillValue(_ws: Workspace, c: Combatant): string {
 }
 
 function CombatantForm({ title, c, set, ws, canSkipSkill }: { title: string; c: Combatant; set: (c: Combatant) => void; ws: Workspace; canSkipSkill?: boolean }) {
+  const own = useWorkspace((s) => s.ws);
   const isId = c.kind === "identity";
   const en = !isId ? ws.enemies.find((e) => e.id === c.id) : undefined;
   const opts = skillOptions(ws, c);
-  const sourceOpts = isId ? ws.identities.map((i) => ({ value: i.id, label: `${i.name} (${i.sinner})` })) : ws.enemies.map((e) => ({ value: e.id, label: `${e.name} (Lv ${e.level})` }));
   const hasSanity = isId || en?.hasSanity;
   const statusName = useStatusName();
   return (
@@ -76,12 +89,12 @@ function CombatantForm({ title, c, set, ws, canSkipSkill }: { title: string; c: 
           label="Type"
           value={c.kind}
           onChange={(k) => {
-            const first = k === "identity" ? ws.identities[0]?.id ?? "" : ws.enemies[0]?.id ?? "";
+            const first = k === "identity" ? own.identities[0]?.id ?? "" : own.enemies[0]?.id ?? "";
             set(blank(k, first, k === "identity" ? "S1" : canSkipSkill ? "" : "K0"));
           }}
           options={[{ value: "identity", label: "Identity" }, { value: "enemy", label: "Enemy" }]}
         />
-        <Select label={isId ? "Identity" : "Enemy"} className="span-2" value={c.id} placeholder="— pick —" onChange={(v) => set({ ...c, id: v, skill: isId ? "S1" : canSkipSkill ? "" : "K0", part: 0 })} options={sourceOpts} />
+        <ContentPicker key={c.kind} kind={isId ? "identity" : "enemy"} label={isId ? "Identity" : "Enemy"} className="span-2" value={c.id || null} onChange={(v) => set({ ...c, id: v ?? "", skill: isId ? "S1" : "K0", part: 0 })} />
         {en && en.parts.length > 0 && (
           <Select label="Part" value={String(c.part)} onChange={(v) => set({ ...c, part: Number(v), skill: c.skill ? "K0" : "" })} options={en.parts.map((p, i) => ({ value: String(i), label: p.name }))} hint="Acts with / is hit on this part." />
         )}
@@ -132,6 +145,16 @@ function CombatantForm({ title, c, set, ws, canSkipSkill }: { title: string; c: 
         Add status
       </Button>
     </Card>
+  );
+}
+
+function GiftChip({ id, onRemove }: { id: string; onRemove: () => void }) {
+  const name = useItemName("gift", id);
+  return (
+    <span className="row" style={{ gap: 4 }}>
+      <span className="badge">{name || "Gift"}</span>
+      <Button icon="x" small variant="ghost" label={`Remove ${name || "gift"}`} onClick={onRemove} />
+    </span>
   );
 }
 
@@ -244,8 +267,12 @@ export default function CalcPage() {
     const q = new URLSearchParams(window.location.hash.split("?")[1] ?? "");
     const a = q.get("attacker"), d = q.get("defender");
     if (a || d) {
-      const [kind, id] = (a ?? d)!.split(":");
-      const c = blank(kind as "identity" | "enemy", id, kind === "identity" ? "S1" : a ? "K0" : "");
+      const param = (a ?? d)!;
+      const cut = param.indexOf(":");
+      const kind = param.slice(0, cut);
+      const id = param.slice(cut + 1);
+      if (kind !== "identity" && kind !== "enemy") return;
+      const c = blank(kind, id, kind === "identity" ? "S1" : a ? "K0" : "");
       setForm((f) => (a ? { ...f, attacker: c } : { ...f, defender: c, exchange: "oneSided" }));
       window.history.replaceState(null, "", "#/calc");
     }
@@ -258,8 +285,12 @@ export default function CalcPage() {
       setBusy(true);
       setError(null);
       try {
+        if (!form.attacker.id || !form.defender.id) {
+          if (my === seq.current) setResult(null);
+          return;
+        }
         const r = await runCalcAsync({
-          workspace: ws,
+          workspace: await engineWorkspace(ws, formRefs(form)),
           attacker: form.attacker,
           defender: form.defender,
           exchange: form.exchange,
@@ -280,10 +311,17 @@ export default function CalcPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, ws]);
 
+  const baseRefs = formRefs(form);
+  const egoGame = useGameItems("ego");
+  const base = useGameWorkspace(ws, baseRefs);
+  const sinners = new Set([form.attacker, form.defender].filter((c) => c.kind === "identity").map((c) => base.identities.find((i) => i.id === c.id)?.sinner));
+  const egoRefs = egoGame.items.filter((e) => sinners.has(e.sinner)).map((e) => e.id);
+  const view = useGameWorkspace(ws, [...baseRefs, ...egoRefs]);
+
   const sc = result?.scenarios[Math.min(scenario, (result?.scenarios.length ?? 1) - 1)];
   const isClash = form.exchange === "clash";
   const dmg = result?.damageToDefender;
-  const enough = ws.identities.length + ws.enemies.length > 0;
+  const missingUnit = !form.attacker.id || !form.defender.id;
   const swap = () => setForm({ ...form, attacker: form.defender.skill ? form.defender : { ...form.defender, skill: form.defender.kind === "identity" ? "S1" : "K0" }, defender: form.attacker });
 
   const summary = useMemo(() => {
@@ -300,16 +338,14 @@ export default function CalcPage() {
     );
   }, [result, dmg, isClash]);
 
-  if (!enough) return <Notice kind="info">Build an Identity or an enemy first — the calculator uses your own content.</Notice>;
-
   return (
     <div className="stack">
       <p className="muted" style={{ maxWidth: 760 }}>
         One exchange between two units, run {form.runs.toLocaleString()} times with the real combat engine. The best/worst cases below show each coin with every term of the damage formula.
       </p>
       <div className="grid two">
-        <CombatantForm title="Attacker" c={form.attacker} set={(c) => setForm({ ...form, attacker: c })} ws={ws} />
-        <CombatantForm title="Defender" c={form.defender} set={(c) => setForm({ ...form, defender: c })} ws={ws} canSkipSkill />
+        <CombatantForm title="Attacker" c={form.attacker} set={(c) => setForm({ ...form, attacker: c })} ws={view} />
+        <CombatantForm title="Defender" c={form.defender} set={(c) => setForm({ ...form, defender: c })} ws={view} canSkipSkill />
       </div>
       <Card>
         <div className="row" style={{ alignItems: "flex-end" }}>
@@ -321,19 +357,16 @@ export default function CalcPage() {
             Swap sides
           </Button>
         </div>
-        {ws.gifts.length > 0 && (
-          <div className="field" style={{ marginTop: 10 }}>
-            <span className="label">Attacker's E.G.O Gifts</span>
-            <div className="row">
-              {ws.gifts.map((g) => (
-                <label key={g.id} className="check" style={{ minHeight: 36 }}>
-                  <input type="checkbox" checked={form.giftIds.includes(g.id)} onChange={(e) => setForm({ ...form, giftIds: e.target.checked ? [...form.giftIds, g.id] : form.giftIds.filter((x) => x !== g.id) })} />
-                  {g.name}
-                </label>
-              ))}
-            </div>
+        <div className="field" style={{ marginTop: 10 }}>
+          <span className="label">Attacker's E.G.O Gifts</span>
+          <div className="row">
+            {form.giftIds.map((g) => (
+              <GiftChip key={g} id={g} onRemove={() => setForm({ ...form, giftIds: form.giftIds.filter((x) => x !== g) })} />
+            ))}
+            <ContentPicker kind="gift" label="Add a gift" compact value={null} onChange={(id) => id && !form.giftIds.includes(id) && setForm({ ...form, giftIds: [...form.giftIds, id] })} className="gift-add" />
           </div>
-        )}
+        </div>
+        {missingUnit && <p className="small" style={{ color: "var(--warn)" }}>Pick an attacker and a defender to see results.</p>}
         {form.exchange === "clash" && !form.defender.skill && <p className="small" style={{ color: "var(--warn)" }}>Pick a skill for the defender to Clash with.</p>}
       </Card>
 
