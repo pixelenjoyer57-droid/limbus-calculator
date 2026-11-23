@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { SIN_COLOR, SIN_LABEL, SINS } from "../../engine/constants";
 import type { BattleState, PlannedAction, UnitState } from "../../engine/types";
 import { createBattle } from "../../engine/setup";
@@ -15,6 +15,7 @@ import { Button, Check, NumberInput, Segmented, Select } from "../../ui/controls
 import { Bar, Card, EmptyState, Notice, Stat } from "../../ui/layout";
 import { useStatusName } from "../../ui/game";
 import { LogView } from "./LogView";
+import { Battlefield } from "./Battlefield";
 import type { Workspace } from "../../data/schema";
 
 const pct = (x: number) => `${Math.round(x * 1000) / 10}%`;
@@ -104,8 +105,8 @@ function UnitCard({ b, u }: { b: BattleState; u: UnitState }) {
   );
 }
 
-function ActionRow({ b, a, onChange }: { b: BattleState; a: PlannedAction; onChange: (patch: Partial<PlannedAction>) => void }) {
-  const u = b.units.find((x) => x.uid === a.uid)!;
+/** Skill + target pickers and the Clash forecast for one planned ally action. Shared by the list and the board dialog. */
+function ActionControls({ b, a, onChange, header }: { b: BattleState; a: PlannedAction; onChange: (patch: Partial<PlannedAction>) => void; header?: ReactNode }) {
   const opts = skillOptions(b, a);
   const egos = egoOptions(b, a);
   const skill = a.skill ? b.content.skills[a.skill] : undefined;
@@ -115,12 +116,9 @@ function ActionRow({ b, a, onChange }: { b: BattleState; a: PlannedAction; onCha
   const value = a.ego ? `ego:${a.ego.key}:${a.ego.overclock ? "oc" : "aw"}` : a.skill ?? "";
   const targetValue = a.targetAction ? `act:${a.targetAction}` : a.target ? `unit:${a.target}` : "";
   return (
-    <div className="action" style={{ ["--sin" as string]: skill?.sin ? SIN_COLOR[skill.sin] : "var(--line)" }}>
+    <div>
       <div className="row">
-        <strong>{u.name}</strong>
-        <span className="muted small">
-          Slot {a.slot + 1} · Speed {u.speed}
-        </span>
+        {header}
         <span className="spacer" />
         {fc.mode === "clash" && <span className={`badge ${fc.win! >= 0.6 ? "green" : fc.win! < 0.4 ? "red" : "gold"}`}>Clash · {pct(fc.win!)} win</span>}
         {fc.mode === "oneSided" && <span className="badge">One-sided</span>}
@@ -182,22 +180,50 @@ function ActionRow({ b, a, onChange }: { b: BattleState; a: PlannedAction; onCha
   );
 }
 
+function ActionRow({ b, a, onChange }: { b: BattleState; a: PlannedAction; onChange: (patch: Partial<PlannedAction>) => void }) {
+  const u = b.units.find((x) => x.uid === a.uid)!;
+  const skill = a.skill ? b.content.skills[a.skill] : undefined;
+  return (
+    <div className="action" style={{ ["--sin" as string]: skill?.sin ? SIN_COLOR[skill.sin] : "var(--line)" }}>
+      <ActionControls
+        b={b}
+        a={a}
+        onChange={onChange}
+        header={
+          <>
+            <strong>{u.name}</strong>
+            <span className="muted small">
+              Slot {a.slot + 1} · Speed {u.speed}
+            </span>
+          </>
+        }
+      />
+    </div>
+  );
+}
+
+function EnemyIntentLine({ b, a }: { b: BattleState; a: PlannedAction }) {
+  const u = b.units.find((x) => x.uid === a.uid)!;
+  const s = b.content.skills[a.skill!];
+  const t = b.units.find((x) => x.uid === a.target);
+  return (
+    <>
+      <strong>{u.name}</strong> (Speed {u.speed}): {s.name} <span className="muted">({s.sin ? SIN_LABEL[s.sin] : "—"} {s.kind === "attack" ? s.dmgType.toLowerCase() : s.kind}, {s.basePower}{s.coinPower >= 0 ? "+" : ""}{s.coinPower}×{s.coins.length})</span>
+      {t ? ` → ${t.name}` : ""}
+    </>
+  );
+}
+
 function EnemyIntents({ b }: { b: BattleState }) {
   const acts = b.plan.filter((a) => a.side === "enemy" && a.skill);
   if (!acts.length) return <p className="muted small">Enemies do nothing this turn.</p>;
   return (
     <ul style={{ margin: 0, paddingLeft: "1.1em" }}>
-      {acts.map((a) => {
-        const u = b.units.find((x) => x.uid === a.uid)!;
-        const s = b.content.skills[a.skill!];
-        const t = b.units.find((x) => x.uid === a.target);
-        return (
-          <li key={a.id}>
-            <strong>{u.name}</strong> (Speed {u.speed}): {s.name} <span className="muted">({s.sin ? SIN_LABEL[s.sin] : "—"} {s.kind === "attack" ? s.dmgType.toLowerCase() : s.kind}, {s.basePower}{s.coinPower >= 0 ? "+" : ""}{s.coinPower}×{s.coins.length})</span>
-            {t ? ` → ${t.name}` : ""}
-          </li>
-        );
-      })}
+      {acts.map((a) => (
+        <li key={a.id}>
+          <EnemyIntentLine b={b} a={a} />
+        </li>
+      ))}
     </ul>
   );
 }
@@ -215,6 +241,22 @@ function BattleView({ b, setBattle, onNew, onRestart }: { b: BattleState; setBat
   const cores = b.units.filter((u) => u.kind === "core");
   const allyActions = b.plan.filter((a) => a.side === "ally").sort((x, y) => (b.units.find((u) => u.uid === y.uid)?.speed ?? 0) - (b.units.find((u) => u.uid === x.uid)?.speed ?? 0));
   const res = b.resources.ally;
+  const [view, setViewState] = useState<"board" | "list">(() => {
+    try {
+      return localStorage.getItem("sim-view") === "list" ? "list" : "board";
+    } catch {
+      return "board";
+    }
+  });
+  const setView = (v: "board" | "list") => {
+    setViewState(v);
+    try {
+      localStorage.setItem("sim-view", v);
+    } catch {
+      /* storage unavailable: the choice just isn't remembered */
+    }
+  };
+  const patchAction = (id: string) => (patch: Partial<PlannedAction>) => mutate((x) => Object.assign(x.plan.find((p) => p.id === id)!, patch));
   return (
     <div className="stack">
       <Card>
@@ -250,6 +292,27 @@ function BattleView({ b, setBattle, onNew, onRestart }: { b: BattleState; setBat
         </p>
       </Card>
 
+      <Segmented label="View" value={view} onChange={setView} options={[{ value: "board", label: "Board" }, { value: "list", label: "List" }]} />
+
+      {view === "board" ? (
+        <Card title="Battlefield">
+          <Battlefield
+            b={b}
+            renderUnit={(u) => <UnitCard b={b} u={u} />}
+            renderAlly={(a) => <ActionControls b={b} a={a} onChange={patchAction(a.id)} />}
+            renderEnemy={(a) =>
+              a.skill ? (
+                <p style={{ margin: 0 }}>
+                  <EnemyIntentLine b={b} a={a} />
+                </p>
+              ) : (
+                <p className="muted" style={{ margin: 0 }}>This enemy does nothing this turn.</p>
+              )
+            }
+          />
+          {!b.outcome && <p className="small muted" style={{ marginTop: 8 }}>Tap a slot (the small boxes above each token) to change what it does. Tap a token for details. A skill Clashes with an enemy skill aimed at it, or with one you are faster than.</p>}
+        </Card>
+      ) : (
       <div className="grid two">
         <Card title="Your team">
           <div className="units">
@@ -266,12 +329,13 @@ function BattleView({ b, setBattle, onNew, onRestart }: { b: BattleState; setBat
           </div>
         </Card>
       </div>
+      )}
 
-      {!b.outcome && (
+      {!b.outcome && view === "list" && (
         <div className="grid two" style={{ alignItems: "start" }}>
           <Card title="Your plan for this turn">
             {allyActions.length ? (
-              allyActions.map((a) => <ActionRow key={a.id} b={b} a={a} onChange={(patch) => mutate((x) => Object.assign(x.plan.find((p) => p.id === a.id)!, patch))} />)
+              allyActions.map((a) => <ActionRow key={a.id} b={b} a={a} onChange={patchAction(a.id)} />)
             ) : (
               <p className="muted">No one can act this turn.</p>
             )}
