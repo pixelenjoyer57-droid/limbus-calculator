@@ -12,13 +12,19 @@ import { toast } from "../../store/toast";
 import { navigate, href } from "../../lib/router";
 import { copyText, downloadJSON, slug } from "../../lib/files";
 import { Icon } from "../../ui/icons";
-import { Button } from "../../ui/controls";
+import { Button, Segmented } from "../../ui/controls";
 import { Dialog, EmptyState, Tabs } from "../../ui/layout";
 import { GradeBadge } from "../../ui/game";
+import { useGameData } from "../../gamedata/store";
+import { GAME_FILE, type GameKind } from "../../gamedata/types";
 import { KIND_INFO, SLUG_TO_KIND } from "./kinds";
+import GameList from "./GameList";
+import GameDataView from "./GameDataView";
 import { EgoEditor, EnemyEditor, IdentityEditor, identityWarnings } from "./editors";
 import { CoinTypeEditor, EncounterEditor, EventEditor, GiftEditor, StatusEditor } from "./editors2";
 import type { Edit } from "./rules";
+
+const GAME_CAPABLE: ContentKind[] = ["identity", "ego", "enemy", "gift", "status"];
 
 const LIB_KINDS: ContentKind[] = ["identity", "ego", "enemy", "encounter", "event", "gift", "status", "coinType"];
 
@@ -91,10 +97,26 @@ export default function Library({ kindSlug, itemId }: { kindSlug?: string; itemI
   const remove = useWorkspace((s) => s.remove);
   const touch = useSession((s) => s.touch);
   const [query, setQuery] = useState("");
+  const gameCapable = GAME_CAPABLE.includes(kind);
+  const gameSelected = gameCapable && !!itemId && itemId.startsWith("g:");
+  const gameFlag = useSession((s) => !!s.open[`lib.game.${kind}`]);
+  const gameMode = gameCapable && (gameSelected || gameFlag);
+  const gameIndex = useGameData((s) => s.index);
+  const ensureIndex = useGameData((s) => s.ensureIndex);
   const [picker, setPicker] = useState(false);
   const [share, setShare] = useState<string | null>(null);
   const items = ws[COLLECTION[kind]] as unknown as AnyContent[];
-  const item = itemId ? items.find((x) => x.id === itemId) : undefined;
+  const item = itemId && !gameSelected ? items.find((x) => x.id === itemId) : undefined;
+  const gameCount = gameIndex?.counts[GAME_FILE[kind as GameKind]?.count];
+  const setGameMode = (on: boolean) => {
+    const s = useSession.getState();
+    s.set({ open: { ...s.open, [`lib.game.${kind}`]: on } });
+    if (gameSelected || itemId) navigate(`/build/${info.slug}`);
+  };
+
+  useEffect(() => {
+    if (gameCapable) void ensureIndex();
+  }, [gameCapable, ensureIndex]);
 
   useEffect(() => {
     if (window.location.hash.includes("new=1")) {
@@ -110,7 +132,11 @@ export default function Library({ kindSlug, itemId }: { kindSlug?: string; itemI
     const q = query.trim().toLowerCase();
     const list = [...items].sort((a, b) => b.updatedAt - a.updatedAt);
     if (!q) return list;
-    return list.filter((x) => ("name" in x ? x.name : "").toLowerCase().includes(q) || subtitle(x).toLowerCase().includes(q));
+    const words = q.split(/\s+/);
+    return list.filter((x) => {
+      const h = `${"name" in x ? x.name : ""} | ${subtitle(x)} | ${"tags" in x ? (x.tags as string[]).join(" ") : ""}`.toLowerCase();
+      return words.every((w) => h.includes(w));
+    });
   }, [items, query]);
 
   const create = (made?: AnyContent) => {
@@ -139,8 +165,30 @@ export default function Library({ kindSlug, itemId }: { kindSlug?: string; itemI
     if (removed) toast(`Deleted "${"name" in removed ? removed.name : ""}".`, "info", { label: "Undo", run: () => useWorkspace.getState().undo() });
   };
 
-  const listView = (
+  const switcher = gameCapable && (
+    <div className="gd-switch">
+      <Segmented
+        label="Show"
+        hideLabel
+        value={gameMode ? "game" : "mine"}
+        onChange={(v) => setGameMode(v === "game")}
+        options={[
+          { value: "mine", label: `My content (${items.length})` },
+          { value: "game", label: `From the game (${gameCount ?? "…"})` },
+        ]}
+      />
+    </div>
+  );
+
+  const listView = gameMode ? (
     <div className="stack">
+      {switcher}
+      <GameList kind={kind as GameKind} selectedId={gameSelected ? itemId : undefined} />
+      {gameIndex && <p className="gd-foot">{gameIndex.attribution} Updated {gameIndex.wikiUpdatedAt.slice(0, 10)}.</p>}
+    </div>
+  ) : (
+    <div className="stack">
+      {switcher}
       <div className="row">
         <Button variant="primary" icon="plus" onClick={onNew}>
           New {info.label}
@@ -203,9 +251,11 @@ export default function Library({ kindSlug, itemId }: { kindSlug?: string; itemI
         tabs={LIB_KINDS.map((k) => ({ value: k, label: KIND_INFO[k].plural, count: (ws[COLLECTION[k]] as unknown[]).length }))}
       />
       <div className="split">
-        <div className={`sticky-side ${item ? "hide-on-narrow" : ""}`}>{listView}</div>
+        <div className={`sticky-side ${item || gameSelected ? "hide-on-narrow" : ""}`}>{listView}</div>
         <div>
-          {item ? (
+          {gameSelected ? (
+            <GameDataView key={itemId} kind={kind as GameKind} id={itemId!} />
+          ) : item ? (
             <div className="stack">
               <div className="card" style={{ padding: "12px 14px" }}>
                 <div className="row">
@@ -236,8 +286,8 @@ export default function Library({ kindSlug, itemId }: { kindSlug?: string; itemI
             </div>
           ) : (
             <div className="hide-on-narrow">
-              <EmptyState title={`Pick ${kind === "identity" || kind === "enemy" || kind === "encounter" || kind === "event" ? "an" : "a"} ${info.label.toLowerCase()}`} action={<Button icon="plus" onClick={onNew}>New {info.label}</Button>}>
-                Choose one on the left to edit it, or make a new one.
+              <EmptyState title={`Pick ${kind === "identity" || kind === "enemy" || kind === "encounter" || kind === "event" ? "an" : "a"} ${info.label.toLowerCase()}`} action={gameMode ? undefined : <Button icon="plus" onClick={onNew}>New {info.label}</Button>}>
+                {gameMode ? "Choose one on the left to look at it. You can copy it to your workshop to edit." : "Choose one on the left to edit it, or make a new one."}
               </EmptyState>
             </div>
           )}

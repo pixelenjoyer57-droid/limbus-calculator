@@ -1,11 +1,12 @@
 // Game-specific widgets: sin badges, resistance pickers, status pickers.
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DMG_LABEL, DMG_TYPES, EGO_GRADE_COLOR, RESIST_PRESETS, SIN_COLOR, SIN_LABEL, SINNERS, SINS, resistTierName,
   type DmgType, type EgoGrade, type Sin,
 } from "../engine/constants";
 import { BUILTIN_STATUS_LIST, KEYWORD_STATUSES } from "../engine/statuses";
 import { useWorkspace } from "../store/workspace";
+import { useGameData } from "../gamedata/store";
 import { Field, NumberInput, Select, type Opt } from "./controls";
 
 export function SinBadge({ sin }: { sin: Sin | null | undefined }) {
@@ -30,14 +31,31 @@ export const SIN_OPTIONS: Opt<Sin>[] = SINS.map((s) => ({ value: s, label: SIN_L
 export const DMG_OPTIONS: Opt<DmgType>[] = DMG_TYPES.map((d) => ({ value: d, label: DMG_LABEL[d] }));
 export const SINNER_OPTIONS: Opt<(typeof SINNERS)[number]>[] = SINNERS.map((s) => ({ value: s, label: s }));
 
-/** Name lookup that also knows the workspace's custom statuses. */
+/** "G_DIMENSIONAL_RIFT" -> "Dimensional Rift": readable stand-in while game statuses load. */
+function nameFromKey(key: string): string {
+  const words = key.replace(/^G_+/, "").split("_").filter(Boolean);
+  return words.length ? words.map((w) => w.charAt(0) + w.slice(1).toLowerCase()).join(" ") : key;
+}
+
+/** Name lookup that also knows the workspace's custom statuses and the game's (G_) statuses (loaded on demand). */
 export function useStatusName(): (key: string) => string {
   const custom = useWorkspace((s) => s.ws.statuses);
+  const game = useGameData((s) => s.statusByKey);
   return useMemo(() => {
     const map = new Map<string, string>(BUILTIN_STATUS_LIST.map((d) => [d.key, d.name]));
     for (const c of custom) map.set(c.key, c.name || "Custom status");
-    return (k: string) => map.get(k) ?? k;
-  }, [custom]);
+    return (k: string) => {
+      const known = map.get(k);
+      if (known) return known;
+      if (k.startsWith("G_")) {
+        const g = game.get(k);
+        if (g) return g.name;
+        if (!game.size) queueMicrotask(() => void useGameData.getState().ensure("status"));
+        return nameFromKey(k);
+      }
+      return k;
+    };
+  }, [custom, game]);
 }
 
 const GROUP_LABEL: Record<string, string> = {
@@ -52,8 +70,13 @@ const GROUP_LABEL: Record<string, string> = {
   other: "Other",
 };
 
-export function useStatusOptions(): Opt<string>[] {
+/** Status choices. Game (wiki) statuses are included once loaded; pass `load` to start loading them. */
+export function useStatusOptions(load = false): Opt<string>[] {
   const custom = useWorkspace((s) => s.ws.statuses);
+  const game = useGameData((s) => s.kinds.status);
+  useEffect(() => {
+    if (load) void useGameData.getState().ensure("status");
+  }, [load]);
   return useMemo(() => {
     const opts: Opt<string>[] = [];
     for (const k of KEYWORD_STATUSES) opts.push({ value: k, label: BUILTIN_STATUS_LIST.find((d) => d.key === k)!.name, group: "Keyword statuses" });
@@ -62,13 +85,26 @@ export function useStatusOptions(): Opt<string>[] {
       if ((KEYWORD_STATUSES as readonly string[]).includes(d.key)) continue;
       opts.push({ value: d.key, label: d.name, group: GROUP_LABEL[d.group] ?? "Other" });
     }
+    if (game.status === "ready") {
+      const have = new Set(custom.map((c) => c.key));
+      const list = game.items.filter((g) => !have.has(g.key)).sort((a, b) => a.name.localeCompare(b.name));
+      for (const g of list) opts.push({ value: g.key, label: g.name || nameFromKey(g.key), group: "From the game (wiki)" });
+    }
     return opts;
-  }, [custom]);
+  }, [custom, game]);
 }
 
 export function StatusSelect({ label = "Status", value, onChange, className }: { label?: string; value: string; onChange: (v: string) => void; className?: string }) {
-  const options = useStatusOptions();
-  return <Select label={label} value={value} onChange={onChange} options={options} className={className} />;
+  const [touched, setTouched] = useState(false);
+  const isGame = value.startsWith("G_");
+  const options = useStatusOptions(touched || isGame);
+  const name = useStatusName();
+  const shown = isGame && !options.some((o) => o.value === value) ? [{ value, label: name(value), group: "From the game (wiki)" }, ...options] : options;
+  return (
+    <div onFocusCapture={() => setTouched(true)} onPointerDownCapture={() => setTouched(true)} style={{ display: "contents" }}>
+      <Select label={label} value={value} onChange={onChange} options={shown} className={className} />
+    </div>
+  );
 }
 
 /** Resistance picker: named presets plus a precise number. */

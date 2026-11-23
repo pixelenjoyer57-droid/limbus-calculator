@@ -1,6 +1,7 @@
 // Offline cache: pages are network-first (so updates arrive), assets are cache-first
-// (their file names change on every build).
-const CACHE = "sinners-workshop-v1";
+// (their file names change on every build), game data (gamedata/*.json) is
+// stale-while-revalidate: instant from the cache, refreshed in the background.
+const CACHE = "sinners-workshop-v2";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {
@@ -23,6 +24,22 @@ self.addEventListener("fetch", (event) => {
           return res;
         })
         .catch(() => caches.match(req).then((r) => r || caches.match("./") || caches.match("./index.html"))),
+    );
+    return;
+  }
+  if (url.pathname.includes("/gamedata/")) {
+    event.respondWith(
+      caches.open(CACHE).then((c) =>
+        c.match(req).then((cached) => {
+          const net = fetch(req)
+            .then((res) => {
+              if (res.ok) c.put(req, res.clone());
+              return res;
+            })
+            .catch(() => cached || Response.error());
+          return cached || net;
+        }),
+      ),
     );
     return;
   }

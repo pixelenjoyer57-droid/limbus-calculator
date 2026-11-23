@@ -1,0 +1,24 @@
+/* Game data (wiki) views in the Library. */
+.gd-switch { display: flex; flex-direction: column; gap: 8px; }
+.gd-switch .seg { width: 100%; }
+.gd-switch .seg button { flex: 1; }
+.gd-filters { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+.gd-filters .full { grid-column: 1 / -1; }
+.gd-count { font-size: 0.86rem; color: var(--muted); margin: 0; }
+.gd-foot { font-size: 0.8rem; color: var(--muted); margin: 0; line-height: 1.4; }
+.gd-head h1 { margin: 0; font-size: 1.3rem; overflow-wrap: anywhere; }
+.gd-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.gd-stats { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.gd-stats .stat .value { font-size: 1.2rem; }
+.gd-resists { margin: 0; padding-left: 1.1em; font-size: 0.92rem; }
+.gd-note { border: 1px solid var(--line-soft); border-radius: var(--radius-sm); padding: 10px 12px; background: var(--bg-2); font-size: 0.92rem; }
+.gd-note p { margin: 0.3em 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.gd-note .badge { margin-bottom: 4px; }
+.gd-note.ns { border-style: dashed; border-color: var(--warn); }
+.gd-part { border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 12px 14px; background: var(--bg-2); }
+.gd-part + .gd-part { margin-top: 12px; }
+.gd-part h4 { margin: 0 0 8px; }
+.gd-passive { border-left: 4px solid var(--line); padding: 4px 0 4px 12px; }
+.gd-passive + .gd-passive { margin-top: 12px; }
+.gd-passive h4 { margin: 0; }
+.gd-passive p { margin: 0.25em 0; }

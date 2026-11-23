@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generatedAt": "2026-11-23T14:28:42.525Z",
+  "generatedAt": "2026-11-23T14:31:43.703Z",
   "wikiUpdatedAt": "2026-11-23T10:45:52Z",
   "source": "https://limbuscompany.wiki.gg",
   "license": "CC BY-SA 4.0",
@@ -13,11 +13,11 @@
     "statuses": 1266
   },
   "sizes": {
-    "identities": 1395219,
-    "egos": 348010,
-    "enemies": 6901714,
+    "identities": 1395086,
+    "egos": 348006,
+    "enemies": 6901613,
     "gifts": 742861,
-    "statuses": 698746
+    "statuses": 698223
   },
   "coverage": {
     "identity": {

@@ -26,22 +26,36 @@ const ALIASES: Record<string, string> = {
   "n corp's nails": "NAILS",
 };
 
+/** Short stable hash (FNV-1a, base 36) to keep keys unique and non-empty. */
+function shortHash(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(36);
+}
+
+/** "Dimensional Rift" → "G_DIMENSIONAL_RIFT". Always non-empty and short enough for ids (≤ 80 chars). */
 export function snakeKey(name: string): string {
-  return (
-    "G_" +
-    name
-      .normalize("NFKD")
-      .replace(/[^\w\s-]/g, "")
-      .trim()
-      .replace(/[\s-]+/g, "_")
-      .toUpperCase()
-      .slice(0, 70)
-  );
+  const base = name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/[\s-]+/g, "_")
+    .toUpperCase()
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 48)
+    .replace(/_+$/g, "");
+  return "G_" + (base || "S" + shortHash(name));
 }
 
 export class StatusRegistry {
   private byName = new Map<string, StatusInfo>();
   private game = new Map<string, CustomStatus>();
+  /** key → full wiki name (names are shortened in the output) */
+  private keyName = new Map<string, string>();
   private used = new Set<string>();
   private data: LuaTable;
 
@@ -69,7 +83,9 @@ export class StatusRegistry {
     // Wiki descriptions use X for the main value and Y for a second value (Count)
     const pc = /\bY\b/.test(desc) || /\bCount\b/.test(desc);
     let key = snakeKey(name);
-    while ([...this.game.values()].some((g) => g.key === key && g.name !== name)) key += "_";
+    // different statuses can share a (shortened) key: keep them apart
+    if (this.keyName.has(key) && this.keyName.get(key) !== name) key = `${key}_${shortHash(name)}`;
+    this.keyName.set(key, name);
     const info: StatusInfo = { key, mode: pc ? "pc" : "value" };
     this.byName.set(k, info);
     if (!this.game.has(key)) {
