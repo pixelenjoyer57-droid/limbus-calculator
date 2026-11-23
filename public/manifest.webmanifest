@@ -1,0 +1,15 @@
+{
+  "name": "Sinner's Workshop",
+  "short_name": "Workshop",
+  "description": "Build and test custom Limbus Company Identities, E.G.O, enemies, encounters, events and E.G.O Gifts.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#111015",
+  "theme_color": "#111015",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
