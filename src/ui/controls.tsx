@@ -312,9 +312,16 @@ export function Select<T extends string>({
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g)!.push(o);
   }
+  // A value that isn't one of the options would make the browser silently show the first option; show an explicit placeholder instead.
+  const known = options.some((o) => o.value === value) || (placeholder !== undefined && value === "");
   return (
     <Field label={label} hint={hint} warn={warn} info={info} htmlFor={id} className={className}>
       <select id={id} className="input" value={value} onChange={(e) => onChange(e.target.value as T)}>
+        {!known && (
+          <option value={value} disabled>
+            {placeholder ?? "— pick one —"}
+          </option>
+        )}
         {placeholder !== undefined && <option value="">{placeholder}</option>}
         {[...groups.entries()].map(([g, opts]) =>
           g ? (

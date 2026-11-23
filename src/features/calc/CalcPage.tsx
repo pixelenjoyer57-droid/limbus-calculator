@@ -278,6 +278,12 @@ export default function CalcPage() {
     }
   }, []);
 
+  // Drop remembered custom gifts that have since been deleted (game gifts, "g:", always stay).
+  useEffect(() => {
+    const keep = form.giftIds.filter((g) => g.startsWith("g:") || ws.gifts.some((x) => x.id === g));
+    if (keep.length !== form.giftIds.length) setForm((f) => ({ ...f, giftIds: keep }));
+  }, [ws, form.giftIds]);
+
   useEffect(() => {
     setSession({ calc: form });
     const my = ++seq.current;

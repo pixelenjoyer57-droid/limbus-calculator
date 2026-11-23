@@ -16,6 +16,7 @@ import { href, navigate } from "../../lib/router";
 import { Button, Check, NumberInput, Segmented, Select } from "../../ui/controls";
 import { Bar, Card, EmptyState, Notice, Stat } from "../../ui/layout";
 import { useStatusName } from "../../ui/game";
+import { healSimForm } from "./form";
 import { LogView } from "./LogView";
 import { Battlefield } from "./Battlefield";
 import type { Workspace } from "../../data/schema";
@@ -36,9 +37,17 @@ function defaultForm(ws: Workspace): SimForm {
 }
 
 /** Builds the engine set-up; loads the game data first so teams/encounters/quick lists that use game items work. */
-async function setupFor(ws: Workspace, f: SimForm) {
+async function setupFor(ws: Workspace, form: SimForm): Promise<{ error: string } | { setup: Awaited<ReturnType<typeof buildSetup>> }> {
+  const f = healSimForm(ws, form);
   const team = ws.teams.find((t) => t.id === f.teamId);
-  if (!team) return null;
+  if (!team) return { error: "Make a team first (Teams page)." };
+  if (!team.deploy.length) return { error: "Nobody in this team is deployed — open the team and tick 'Deploy in fights'." };
+  if (f.source === "quick" && !f.quick.length) return { error: "Add at least one enemy." };
+  if (f.source === "encounter" && !f.encounterId) return { error: "Pick an encounter (or switch to Quick pick)." };
+  return { setup: await buildSetup(ws, f, team) };
+}
+
+async function buildSetup(ws: Workspace, f: SimForm, team: Workspace["teams"][number]) {
   const refs = f.source === "quick" ? f.quick.map((q) => q.enemyId) : [];
   return {
     workspace: await engineWorkspace(ws, refs),
@@ -423,7 +432,7 @@ export default function SimPage() {
   const saved = useSession((s) => s.sim);
   const battle = useSession((s) => s.battle);
   const setSession = useSession((s) => s.set);
-  const [form, setForm] = useState<SimForm>(() => saved ?? defaultForm(ws));
+  const [form, setForm] = useState<SimForm>(() => healSimForm(ws, saved ?? defaultForm(ws)));
   const [batch, setBatch] = useState<BatchResult | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
 
@@ -435,17 +444,23 @@ export default function SimPage() {
       window.history.replaceState(null, "", "#/sim");
     }
   }, []);
+  // Heal references to things deleted since the form was remembered (also covers edits made elsewhere while this page stays mounted).
+  useEffect(() => {
+    const healed = healSimForm(ws, form);
+    if (healed !== form) setForm(healed);
+  }, [ws, form]);
   useEffect(() => setSession({ sim: form }), [form]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setBattle = (b: BattleState | null) => setSession({ battle: b });
 
   const start = async (seed?: number) => {
     try {
-      const setup = await setupFor(ws, form);
-      if (!setup) {
-        toast("Pick a team first.", "error");
+      const r = await setupFor(ws, form);
+      if ("error" in r) {
+        toast(r.error, "error");
         return;
       }
+      const setup = r.setup;
       const { battle: b, warnings } = createBattle({ ...setup, seed });
       for (const w of warnings) toast(w, "info");
       setBattle(b);
@@ -458,12 +473,12 @@ export default function SimPage() {
     setProgress(0);
     setBatch(null);
     try {
-      const setup = await setupFor(ws, form);
-      if (!setup) {
-        toast("Pick a team first.", "error");
+      const s = await setupFor(ws, form);
+      if ("error" in s) {
+        toast(s.error, "error");
         return;
       }
-      const r = await runBatchAsync(setup, { runs: form.runs, maxTurns: form.maxTurns, useEgo: form.useEgo, seed: 777 }, setProgress);
+      const r = await runBatchAsync(s.setup, { runs: form.runs, maxTurns: form.maxTurns, useEgo: form.useEgo, seed: 777 }, setProgress);
       setBatch(r);
     } catch (e) {
       toast(e instanceof Error ? e.message : "Simulation failed.", "error");
