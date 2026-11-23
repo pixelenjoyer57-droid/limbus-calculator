@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "generatedAt": "2026-11-23T14:21:41.268Z",
+  "generatedAt": "2026-11-23T14:28:42.525Z",
   "wikiUpdatedAt": "2026-11-23T10:45:52Z",
   "source": "https://limbuscompany.wiki.gg",
   "license": "CC BY-SA 4.0",
@@ -13,27 +13,27 @@
     "statuses": 1266
   },
   "sizes": {
-    "identities": 1394360,
-    "egos": 347686,
-    "enemies": 6895838,
+    "identities": 1395219,
+    "egos": 348010,
+    "enemies": 6901714,
     "gifts": 742861,
     "statuses": 698746
   },
   "coverage": {
     "identity": {
       "sentences": 5841,
-      "simulated": 3001,
-      "pct": 51.4
+      "simulated": 3006,
+      "pct": 51.5
     },
     "ego": {
       "sentences": 1674,
-      "simulated": 644,
-      "pct": 38.5
+      "simulated": 646,
+      "pct": 38.6
     },
     "enemy": {
       "sentences": 28324,
-      "simulated": 15606,
-      "pct": 55.1
+      "simulated": 15649,
+      "pct": 55.2
     },
     "gift": {
       "sentences": 2550,
