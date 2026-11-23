@@ -4,6 +4,10 @@ import { z } from "zod";
 import { DMG_TYPES, EGO_GRADES, GIFT_TIERS, SINNERS, SINS } from "../engine/constants";
 import { TREMOR_TYPES } from "../engine/statuses";
 
+// zod 4 probes `new Function` to JIT-compile object parsers. Under our meta CSP (no 'unsafe-eval') that probe
+// is caught but still reported as a CSP violation, so turn the JIT off (must run before any schema is built).
+z.config({ jitless: true });
+
 export const SCHEMA_VERSION = 1;
 
 const zSin = z.enum(SINS);
@@ -476,7 +480,7 @@ export const zTeam = z.object({
   id: id(),
   kind: z.literal("team").catch("team").default("team"),
   name: str("New Team", 80),
-  members: z.record(zSinner, zTeamMember).catch({}).default({}),
+  members: z.partialRecord(zSinner, zTeamMember).catch({}).default({}),
   deploy: z.array(zSinner).max(12).catch([]).default([]),
   gifts: z.array(z.object({ giftId: z.string(), level: int(0, 0, 2) })).max(80).catch([]).default([]),
   startResources: zSinCost.catch(Object.fromEntries(SINS.map((s) => [s, 0])) as SinCost),

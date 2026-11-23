@@ -3,7 +3,7 @@ import { useWorkspace } from "../../store/workspace";
 import { useSettings } from "../../store/settings";
 import { toast } from "../../store/toast";
 import { bytesOf, requestPersistence, storageEstimate } from "../../store/storage";
-import { countItems, encodeShareCode, importAny, mergeItems, type ImportResult } from "../../data/migrate";
+import { countItems, encodeShareCode, withCredits, importAny, mergeItems, type ImportResult } from "../../data/migrate";
 import { copyText, dateStamp, downloadJSON, pickFile, slug } from "../../lib/files";
 import { Button, Check, NumberInput, Segmented, TextInput } from "../../ui/controls";
 import { Card, Dialog, Notice, Section } from "../../ui/layout";
@@ -125,10 +125,10 @@ function BackupAndImport() {
             Your work is saved in this browser on this device ({kb(size)}). To use it on your phone or another computer, export a file or copy a share code and import it there.
           </p>
           <div className="row">
-            <Button variant="gold" icon="download" onClick={() => { downloadJSON(`${slug(ws.name)}-${dateStamp()}.workshop.json`, ws); markExported(); toast("Backup file downloaded."); }}>
+            <Button variant="gold" icon="download" onClick={() => { downloadJSON(`${slug(ws.name)}-${dateStamp()}.workshop.json`, withCredits(ws)); markExported(); toast("Backup file downloaded."); }}>
               Download backup file
             </Button>
-            <Button icon="share" onClick={() => { setCode(encodeShareCode(ws)); markExported(); }}>
+            <Button icon="share" onClick={() => { setCode(encodeShareCode(withCredits(ws))); markExported(); }}>
               Get share code
             </Button>
           </div>

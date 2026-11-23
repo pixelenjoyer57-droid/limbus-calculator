@@ -14,36 +14,42 @@ Scope: whole repository (static React/Vite app, service worker, import/share cod
 | 6 | Medium | `public/sw.js` | Navigations were cached even for 404/500 responses (an error page could be served offline later); un-hashed files (icons, manifest) were cache-first forever; no check that responses are same-origin `basic`. | Fixed: only `ok` + `basic` responses are cached; cache-first only for `assets/` (hashed names); everything else network-first; cache bumped to v3 so old caches are dropped. |
 | 7 | Medium | `.github/workflows/pages.yml` | Actions referenced by movable tags; `pages: write` and `id-token: write` granted to the build job; checkout kept credentials. | Fixed: actions pinned to commit SHAs, permissions per job (build: read only), `persist-credentials: false`, `npm ci --ignore-scripts`, `npm audit --omit=dev --audit-level=critical` gate. |
 | 8 | Low | `DataPage.tsx`, `Home.tsx`, `HelpPage.tsx` | External links used `rel="noreferrer"` only. Modern browsers imply noopener, but older ones do not. | Fixed: `rel="noopener noreferrer"`. (The link in `src/features/about/AboutPage.tsx:11` still uses `noreferrer` alone; owned by the other specialist, harmless in current browsers.) |
-| 9 | Medium | `package.json` (zod 3.25.76) | `npm audit`: zod high, "memory exhaustion validating oversized constrained collections". Fix is zod 4.x (breaking API change). | Open: mitigated by findings 1 and 4 (input is size-capped before validation). Upgrade needs an owner decision and a migration. |
-| 10 | Low | `package.json` (vite 5, vitest 2) | `npm audit`: vite/esbuild/vitest/tinypool advisories (dev server file read / RCE when the dev server or vitest UI is exposed). Dev-only, not in the shipped site. | Open: fix needs vite 8 / vitest 5 (major). Do not expose `npm run dev` to a network; update when convenient. |
-| 11 | Info | GitHub Pages | Project pages share one origin (`<user>.github.io`) with every other repository of the same account, and so share `localStorage` and cache scope. Another page of yours could read workshops. | Open: use a custom domain, or keep other sites on that account trusted. |
+| 9 | Medium | `package.json` (zod 3.25.76) | `npm audit`: zod high, "memory exhaustion validating oversized constrained collections". Fix is zod 4.x (breaking API change). | Fixed: zod 4.6.7. Input is also size-capped (findings 1 and 4). Parsing was compared old vs new on about 14,000 real and mutated inputs (all game data, hostile variants): identical output. |
+| 10 | Low | `package.json` (vite 5, vitest 2) | `npm audit`: vite/esbuild/vitest/tinypool advisories (dev server file read / RCE when the dev server or vitest UI is exposed). Dev-only, not in the shipped site. | Fixed: vite 8.3.8, vitest 5.1.1, @vitejs/plugin-react 6.3.0. `npm audit` reports 0 vulnerabilities. Still do not expose `npm run dev` to a network. |
+| 11 | Info | GitHub Pages | Project pages share one origin (`<user>.github.io`) with every other repository of the same account, and so share `localStorage` and cache scope. Another page of yours could read workshops. | Open (owner): use a custom domain, or keep other sites on that account trusted. |
 | 12 | Info | `index.html` | `frame-ancestors` and `X-Frame-Options` cannot be set from a meta tag, so the page can be framed (clickjacking). There are no sensitive actions or accounts, so impact is low. | Open (platform limit). |
-| 13 | Info | `.github/workflows/pages.yml` | Deploys also run from the branch `ccr-c94fdac2-l0ku94`. | Open: remove it from `on.push.branches` when finished, and restrict branches on the `github-pages` environment. |
+| 13 | Info | `.github/workflows/pages.yml` | Deploys also ran from the branch `ccr-c94fdac2-l0ku94`. | Fixed (2026-11-23): the branch was renamed to `main` and the workflow now deploys from `main` only. The `github-pages` environment must allow `main`. |
 | 14 | Info | `mergeItems` | Importing into the current workshop replaces items with the same id (by design, for round trips). Ids are random, so a stranger cannot target yours unless they have your export. The import dialog says so and Undo is offered. | Accepted. |
 | 15 | Info | engine | Hostile rule sets: reuse capped (`MAX_REUSE`), trigger depth capped (6), batch runs capped (5000). The worker cannot be cancelled mid-run (user-started only). | Accepted. |
 | 16 | Info | privacy | Browser test shows no request leaves the site origin; no analytics, no cookies, no telemetry. The wiki importer (`scripts/gamedata`) runs only on a developer machine. | Confirmed. |
+| 17 | Medium | `src/data/schema.ts` (found while upgrading) | zod 4 probes `new Function` to JIT-compile parsers. Under the meta CSP (no `unsafe-eval`) the probe is caught but still reported as a `securitypolicyviolation`. | Fixed: `z.config({ jitless: true })` at the top of `schema.ts`; test in `tests/credits.test.ts`; browser run shows zero violations. |
+| 18 | Info | exports | Exports containing items copied from the game data now carry a top-level `credits` string (wiki CC BY-SA 4.0 / Project Moon notice), only when such items (non-empty `source`) are included. Import ignores it; old files still import. | Done (`withCredits` in `src/data/migrate.ts`; backup file, workshop share code and item exports). |
 
 Checked and fine: no `dangerouslySetInnerHTML`, `innerHTML`, `eval` or `new Function` anywhere in `src`; the only `href` values built from data are the wiki link (fixed origin, path segments URL-encoded) and in-app `#/` routes; no auto-import from the URL hash (share codes must be pasted); `__proto__`/`constructor` keys in payloads do not pollute (tested); item names containing markup stay plain text (React escapes).
 
 ## What changed
 
 - `index.html`: CSP meta tag and `no-referrer`.
-- `src/data/migrate.ts`: bounded share-code decoder, size caps, own-property checks, `g:` id protection, safe `importAny`, legacy items validated.
+- `src/data/migrate.ts`: bounded share-code decoder, size caps, own-property checks, `g:` id protection, safe `importAny`, legacy items validated; `withCredits` / `CREDITS`.
 - `src/lib/files.ts`: 12 MB file cap before reading.
 - `public/sw.js`: safer caching rules, cache v3.
 - `.github/workflows/pages.yml`: pinned actions, least privilege, audit gate.
+- `.github/dependabot.yml`: weekly npm (minor/patch grouped, majors separate) and github-actions updates, on the default branch.
+- Dependencies (exact pins): zod 3.25.76 to 4.6.7, vite 5.4.21 to 8.3.8, vitest 2.1.9 to 5.1.1, @vitejs/plugin-react 4.7.0 to 6.3.0. `package.json`: `"license": "MIT"`, `engines.node` `^20.19.0 || >=22.12.0` (vite 8 needs it; CI uses Node 22).
+- zod 4 code changes: `z.record(zSinner, ...)` became `z.partialRecord(...)` (zod 4 makes enum-keyed records exhaustive); `z.config({ jitless: true })`; `vite.config.ts` imports `defineConfig` from `vitest/config`. Nothing else was needed: `.catch().default()` chains behave the same because every default is itself valid.
 - Link `rel` attributes in three pages.
-- New: `tests/security.test.ts`, `SECURITY.md`, this file.
+- New: `tests/security.test.ts`, `tests/credits.test.ts`, `SECURITY.md`, this file.
 
-CSP in the browser: Home, Builder (including "From the game"), Teams, Calculator, Simulator (batch in the Web Worker), Save/share (share code create and import) and Help/About loaded on desktop and phone with no CSP violations or console errors; the service worker registered; no cross-origin requests.
+CSP in the browser (built app, vite preview, desktop and iPhone 13): Home, Builder (including "From the game": list, open an enemy, copy it), Teams, Calculator (result), Simulator (start, one turn, "Run N fights" in the Web Worker), Save/share (backup file and share code created, then both re-imported), Help and About loaded with zero CSP violations and zero console errors; the service worker registered; no cross-origin requests.
 
 ## Owner checklist (GitHub settings, by hand)
 
-- Settings > Code security: enable **Private vulnerability reporting** (SECURITY.md points reporters there), **Dependabot alerts** and **Dependabot security updates**, and **Secret scanning** with **Push protection**.
-- Add a Dependabot version-updates config (`.github/dependabot.yml`, npm and github-actions, weekly) so pinned action SHAs get update pull requests.
-- Settings > Branches: protect `main` (require a pull request, require the workflow to pass, block force pushes and deletion).
-- Settings > Environments > `github-pages`: limit deployment branches to `main`; remove the temporary branch from the workflow when done.
-- Settings > Actions > General: workflow permissions "Read repository contents", and allow only GitHub-owned actions (or the pinned ones).
-- Settings > Pages: Source "GitHub Actions"; consider a custom domain (finding 11) and "Enforce HTTPS".
-- Decide on the zod 4 and vite/vitest major upgrades (findings 9 and 10).
+Update 2026-11-23: the owner renamed the default branch to `main` and enabled the settings below. `pages.yml` deploys from `main` only; the `github-pages` environment's deployment branches must list `main` (not the old `ccr-c94fdac2-l0ku94`).
+
+- Settings > Code security: enable **Private vulnerability reporting** (SECURITY.md points reporters there), **Dependabot alerts**, **Dependabot security updates**, and **Secret scanning** with **Push protection**. (Dependabot version updates are configured in `.github/dependabot.yml`; merge it to the default branch for it to take effect.)
+- Settings > Branches (or Rules > Rulesets): protect `main`: block force pushes and deletion (done). Requiring pull requests / passing checks is optional; it would require changes to arrive as pull requests instead of direct pushes.
+- Settings > Environments > `github-pages`: limit deployment branches to the default branch; remove any temporary branch from the workflow when done (finding 13).
+- Settings > Actions > General: default workflow permissions "Read repository contents"; allow only GitHub-owned actions (or the pinned ones).
+- Settings > Pages: Source "GitHub Actions"; turn on **Enforce HTTPS**; consider a custom domain (finding 11).
+- Review Dependabot major-version pull requests by hand (they are not grouped).
 - Moderation: tell Discord members that share codes and backups are data but to import only into a throwaway workshop first.

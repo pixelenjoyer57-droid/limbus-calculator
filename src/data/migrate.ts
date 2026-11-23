@@ -314,6 +314,24 @@ export function decodeShareCode(text: string): unknown | null {
   }
 }
 
+export const CREDITS =
+  "Contains data adapted from the Limbus Company Wiki (limbuscompany.wiki.gg), CC BY-SA 4.0; Limbus Company © Project Moon";
+
+/** True when any item was copied from the game data (its `source` is set). */
+export function hasGameSourced(x: Workspace | AnyContent[]): boolean {
+  const lists: unknown[][] = Array.isArray(x) ? [x] : COLLECTION_KEYS.map((k) => (x as unknown as Record<string, unknown[]>)[k] ?? []);
+  return lists.some((l) => l.some((it) => isObj(it) && typeof it.source === "string" && it.source !== ""));
+}
+
+/**
+ * Adds the wiki credit as a top-level `credits` string, only when the payload holds items copied from the
+ * game data (so plain homebrew exports and codes stay as short as before). Import ignores the field.
+ */
+export function withCredits<T extends Workspace | { items: AnyContent[] }>(payload: T): T | (T & { credits: string }) {
+  const sourced = "items" in payload ? hasGameSourced(payload.items) : hasGameSourced(payload as Workspace);
+  return sourced ? { ...payload, credits: CREDITS } : payload;
+}
+
 export function itemsPayload(items: AnyContent[]) {
-  return { format: "sinners-workshop/items", version: SCHEMA_VERSION, items };
+  return withCredits({ format: "sinners-workshop/items", version: SCHEMA_VERSION, items });
 }

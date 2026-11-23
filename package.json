@@ -1,9 +1,13 @@
 {
   "name": "limbus-calculator",
   "private": true,
+  "license": "MIT",
   "version": "1.0.0",
   "description": "Sinner's Workshop: a Limbus Company damage calculator and combat simulator for testing custom Identities, E.G.O, enemies, encounters, events and E.G.O Gifts.",
   "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -19,15 +23,15 @@
     "lz-string": "1.5.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "zod": "3.25.76",
+    "zod": "4.6.7",
     "zustand": "4.5.7"
   },
   "devDependencies": {
     "@types/react": "18.3.31",
     "@types/react-dom": "18.3.7",
-    "@vitejs/plugin-react": "4.7.0",
+    "@vitejs/plugin-react": "6.3.0",
     "typescript": "5.9.3",
-    "vite": "5.4.21",
-    "vitest": "2.1.9"
+    "vite": "8.3.8",
+    "vitest": "5.1.1"
   }
 }
