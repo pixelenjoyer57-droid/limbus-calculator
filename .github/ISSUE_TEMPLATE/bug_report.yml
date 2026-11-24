@@ -21,4 +21,4 @@ body:
       placeholder: Firefox on Windows, Safari on iPhone ...
   - type: markdown
     attributes:
-      value: Please do not paste private information, and do not post leaked or unreleased game content. Vulnerabilities go through SECURITY.md, not here.
+      value: Please do not paste private information, and do not post leaked or unreleased game content. Report vulnerabilities privately through the repository's Security tab (see the security policy), not here.

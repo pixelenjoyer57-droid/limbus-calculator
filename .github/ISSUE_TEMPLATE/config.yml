@@ -4,5 +4,5 @@ contact_links:
     url: https://discord.gg/hZgMnDN5K
     about: Ideas, questions and custom kits are welcome in the Discord.
   - name: Report a security vulnerability
-    url: https://github.com/pixelenjoyer57-droid/limbus-calculator/blob/main/SECURITY.md
-    about: Please report vulnerabilities privately, as described in SECURITY.md. Do not open a public issue.
+    url: https://github.com/pixelenjoyer57-droid/limbus-calculator/security/policy
+    about: Please report vulnerabilities privately, as described in the security policy. Do not open a public issue.
