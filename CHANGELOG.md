@@ -4,6 +4,8 @@ Notable changes to Sinner's Workshop. Versions follow [semantic versioning](http
 
 ## Unreleased
 
+- Clearer terms for how suggestions are handled (About page, Contributing guide, suggestion form).
+- **Easier to read:** better contrast in the light theme (the gold links, active menu item, selected tabs and the gold button and skip link) and for the small grey text on a selected list item in the dark theme. Selected tabs and list items now also show a mark besides colour. The light high-contrast theme now also applies when your device is set to light.
 - **Rule builder**: a scaling number, such as a Coin Power gain, can now add up to 5 quantities, for example several statuses ("+1 for every 3 Burn and Bleed combined"). Use "Add another quantity" and "Remove quantity". Backups and share codes that use this may lose the extra statuses in an older open copy of the app until it is refreshed. Community suggestion.
 
 ## 1.0.0 — 2026-11-24
