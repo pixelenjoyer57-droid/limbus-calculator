@@ -75,16 +75,18 @@ export type Quantity = z.infer<typeof zQuantity>;
 /** A value can add up to this many quantities: q, q2 and at most MAX_EXTRA_QUANTITIES more. */
 export const MAX_QUANTITIES = 5;
 export const MAX_EXTRA_QUANTITIES = MAX_QUANTITIES - 2;
+/** At most this many stored entries are inspected when reading extras, valid or not. */
+const MAX_EXTRA_SCAN = 32;
 
 /**
  * Extra quantities (the third to fifth). Each entry is read with the same checks as any quantity,
  * bad entries are dropped and only the first valid ones are kept. Anything that is not a list gives [].
- * Entries are read one by one and reading stops at the cap, so a huge list costs next to nothing.
+ * Entries are read one by one. Reading stops at the cap of valid entries, and never looks past the first MAX_EXTRA_SCAN entries, so a huge list of junk costs next to nothing.
  */
 const zExtraQuantities = z.unknown().transform((raw): Quantity[] => {
   const out: Quantity[] = [];
   if (!Array.isArray(raw)) return out;
-  const n = raw.length;
+  const n = Math.min(raw.length, MAX_EXTRA_SCAN);
   for (let i = 0; i < n && out.length < MAX_EXTRA_QUANTITIES; i++) {
     const r = zQuantity.safeParse(raw[i]);
     if (r.success) out.push(r.data);

@@ -59,6 +59,14 @@ describe("loading extra quantities", () => {
     expect(Date.now() - t).toBeLessThan(1000);
     expect(readQuantities(v.per!).map((x) => x.status)).toEqual(["A", "B", "S0", "S1", "S2"]);
   });
+  it("only inspects the first entries, so a million junk entries load fast and keep no extras", () => {
+    const junk = new Array(1_000_000).fill(0);
+    const t = Date.now();
+    const v = zValue.parse(rawVal([rq("A"), rq("B")], { qx: junk }));
+    expect(Date.now() - t).toBeLessThan(100);
+    expect(v.per!.qx).toBeUndefined();
+    expect(readQuantities(v.per!)).toHaveLength(2);
+  });
   it("drops wrong types and bad entries, keeping valid ones in order", () => {
     const v = zValue.parse(rawVal([rq("A"), rq("B"), 5, null, "BURN", [rq("Z")], rq("C"), undefined, rq("D"), rq("E"), rq("F")]));
     expect(readQuantities(v.per!).map((x) => x.status)).toEqual(["A", "B", "C", "D", "E"]);

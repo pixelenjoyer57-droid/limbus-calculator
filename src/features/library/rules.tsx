@@ -409,6 +409,8 @@ function ActionEditor({ a, edit, onRemove, trigger }: { a: Action; edit: Edit<Ac
 }
 
 function RuleEditor({ e, edit, scope, onRemove, onMove, onDuplicate, index, total }: { e: Effect; edit: Edit<Effect>; scope: RuleScope; onRemove: () => void; onMove: (d: -1 | 1) => void; onDuplicate: () => void; index: number; total: number }) {
+  // Actions are keyed by position. Removing one bumps this, so no editor is reused for a different action (a value editor remembers its last scaling).
+  const [actionsGen, setActionsGen] = useState(0);
   const nameOf = useStatusName();
   const [open, setOpen] = useState(e.actions.length === 0);
   const text = describeEffect(e, nameOf);
@@ -449,7 +451,7 @@ function RuleEditor({ e, edit, scope, onRemove, onMove, onDuplicate, index, tota
           <div className="rule-block">
             <div className="label">Do</div>
             {e.actions.map((a, i) => (
-              <ActionEditor key={i} a={a} trigger={e.trigger} edit={(fn, k) => edit((d) => fn(d.actions[i]), k ? `a${i}-${k}` : undefined)} onRemove={() => edit((d) => void d.actions.splice(i, 1))} />
+              <ActionEditor key={`${actionsGen}-${i}`} a={a} trigger={e.trigger} edit={(fn, k) => edit((d) => fn(d.actions[i]), k ? `a${i}-${k}` : undefined)} onRemove={() => { setActionsGen((g) => g + 1); edit((d) => void d.actions.splice(i, 1)); }} />
             ))}
             <Button small icon="plus" onClick={() => edit((d) => void d.actions.push(zAction.parse({ kind: "inflict", status: "BURN", potency: val(1), amount: val(0) })))}>
               Add action
