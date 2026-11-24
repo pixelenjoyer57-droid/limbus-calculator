@@ -134,7 +134,7 @@ export function ValueEditor({ label, v, edit, suffix, allowNegative = true }: { 
   // What scaling looked like before it was turned off, so turning it back on in the same rule brings it back.
   const kept = useRef<Value["per"]>(null);
   const [refusal, setRefusal] = useState<{ index: number; text: string } | null>(null);
-  const focusNext = useRef<{ group: number } | "add" | null>(null);
+  const focusNext = useRef<{ group: number } | null>(null);
   const list = v.per ? readQuantities(v.per) : [];
   const atLimit = list.length >= MAX_QUANTITIES;
   const limitId = `${uid}-limit`;
@@ -145,7 +145,7 @@ export function ValueEditor({ label, v, edit, suffix, allowNegative = true }: { 
     const target = focusNext.current;
     if (!target || !root.current) return;
     focusNext.current = null;
-    const el = target === "add" ? root.current.querySelector<HTMLElement>("[data-add-quantity]") : root.current.querySelector<HTMLElement>(`[data-qgroup="${target.group}"] select`);
+    const el = root.current.querySelector<HTMLElement>(`[data-qgroup="${target.group}"] select`);
     el?.focus();
   });
 
@@ -187,7 +187,7 @@ export function ValueEditor({ label, v, edit, suffix, allowNegative = true }: { 
       l.splice(i, 1);
       writeQuantities(d.per!, l);
     });
-    focusNext.current = i > 0 ? { group: i - 1 } : "add";
+    focusNext.current = { group: i - 1 }; // only quantities 2 to 5 have Remove, so i is at least 1
     toast(removedMessage(i + 1, list.length - 1), "info");
   };
 

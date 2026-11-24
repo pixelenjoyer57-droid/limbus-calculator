@@ -321,8 +321,16 @@ describe("saving, backup, share codes and undo", () => {
     // an oversized code is still refused by the unchanged limit
     expect(decodeShareCode("SW1:" + "A".repeat(MAX_SHARE_CHARS + 1))).toBeNull();
     // hostile 10,000-extras value inside a share code loads and is cut
-    const hostile = encodeShareCode({ format: "sinners-workshop/items", items: [{ ...ws.identities[0], skills: [{ ...ws.identities[0].skills[0] }] }] });
-    expect(importAny(hostile).items.length).toBe(1);
+    const junk = [5, null, "x", [1], { kind: 3 }, undefined];
+    const extras = Array.from({ length: 10_000 }, (_, i) => (i % 3 === 0 ? rq("H" + i) : junk[i % junk.length]));
+    const evil = JSON.parse(JSON.stringify(ws.identities[0]));
+    evil.skills[0].coins[0].effects[0].actions[0].amount = rawVal([rq("A"), rq("B"), ...extras]);
+    const imported = importAny(encodeShareCode({ format: "sinners-workshop/items", items: [evil] }));
+    expect(imported.items.length).toBe(1);
+    const amount = valueOf({ identities: imported.items as never });
+    expect(readQuantities(amount.per!).length).toBeLessThanOrEqual(MAX_QUANTITIES);
+    // { kind: 3 } is a valid entry (bad fields fall back to defaults), so it is kept as the third extra
+    expect(readQuantities(amount.per!).map((x) => x.status)).toEqual(["A", "B", "H0", "H3", "BURN"]);
   });
 });
 

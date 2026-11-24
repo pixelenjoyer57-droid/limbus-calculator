@@ -103,6 +103,18 @@ export function Dialog({ open, onClose, title, children, footer, wide }: { open:
 export function Toasts() {
   const toasts = useToasts((s) => s.toasts);
   const dismiss = useToasts((s) => s.dismiss);
+  // Moving through the page by keyboard clears plain notices (already announced), so they never sit over the focused control.
+  // Notices with an action or an error stay until dismissed.
+  const hasPlain = toasts.some((t) => !t.action && t.kind !== "error");
+  useEffect(() => {
+    if (!hasPlain) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      for (const t of useToasts.getState().toasts) if (!t.action && t.kind !== "error") useToasts.getState().dismiss(t.id);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [hasPlain]);
   return (
     <div className="toasts" aria-live="polite" aria-atomic="false">
       {toasts.map((t) => (
