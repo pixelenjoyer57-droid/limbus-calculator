@@ -1,5 +1,5 @@
 // Rule builder for effects: When <trigger> · Only if <conditions> · Do <actions>.
-import { useEffect, useId, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useId, useRef, useState } from "react";
 import type { Draft } from "immer";
 import {
   ACTIONS, CONDITIONS, MAX_QUANTITIES, MOD_STATS, OPS, QUANTITIES, SKILL_SLOTS, WHO, newId, readQuantities, val, writeQuantities, zAction, zCondition, zEffect,
@@ -16,8 +16,11 @@ import { useWorkspace } from "../../store/workspace";
 import { toast } from "../../store/toast";
 import { Icon } from "../../ui/icons";
 import {
-  LIMIT_TEXT, OLD_DUPLICATE_NOTE, addedMessage, duplicateMessage, duplicateOf, groupName, hasDuplicates, nextQuantity, removedMessage,
+  LIMIT_TEXT, OLD_DUPLICATE_NOTE, addedMessage, duplicateMessage, duplicateOf, groupName, bumpResets, hasDuplicates, nextQuantity, removedMessage,
 } from "./quantityList";
+
+/** Goes up when the item shown at this position changes, so a value editor forgets the scaling it remembered. */
+const ScalingResetContext = createContext(0);
 
 export type Edit<T> = (fn: (d: Draft<T>) => void, key?: string) => void;
 export type RuleScope = "coin" | "skill" | "unit";
@@ -133,6 +136,10 @@ export function ValueEditor({ label, v, edit, suffix, allowNegative = true }: { 
   const uid = useId();
   // What scaling looked like before it was turned off, so turning it back on in the same rule brings it back.
   const kept = useRef<Value["per"]>(null);
+  const resetStamp = useContext(ScalingResetContext);
+  useEffect(() => {
+    kept.current = null;
+  }, [resetStamp]);
   const [refusal, setRefusal] = useState<{ index: number; text: string } | null>(null);
   const focusNext = useRef<{ group: number } | null>(null);
   const list = v.per ? readQuantities(v.per) : [];
@@ -409,8 +416,8 @@ function ActionEditor({ a, edit, onRemove, trigger }: { a: Action; edit: Edit<Ac
 }
 
 function RuleEditor({ e, edit, scope, onRemove, onMove, onDuplicate, index, total }: { e: Effect; edit: Edit<Effect>; scope: RuleScope; onRemove: () => void; onMove: (d: -1 | 1) => void; onDuplicate: () => void; index: number; total: number }) {
-  // Actions are keyed by position. Removing one bumps this, so no editor is reused for a different action (a value editor remembers its last scaling).
-  const [actionsGen, setActionsGen] = useState(0);
+  // Actions are keyed by position, so focus stays put after a removal. Positions from the removed one on get a new reset number, so their value editors forget the removed action's scaling.
+  const [actionResets, setActionResets] = useState<number[]>([]);
   const nameOf = useStatusName();
   const [open, setOpen] = useState(e.actions.length === 0);
   const text = describeEffect(e, nameOf);
@@ -451,7 +458,9 @@ function RuleEditor({ e, edit, scope, onRemove, onMove, onDuplicate, index, tota
           <div className="rule-block">
             <div className="label">Do</div>
             {e.actions.map((a, i) => (
-              <ActionEditor key={`${actionsGen}-${i}`} a={a} trigger={e.trigger} edit={(fn, k) => edit((d) => fn(d.actions[i]), k ? `a${i}-${k}` : undefined)} onRemove={() => { setActionsGen((g) => g + 1); edit((d) => void d.actions.splice(i, 1)); }} />
+              <ScalingResetContext.Provider key={i} value={actionResets[i] ?? 0}>
+                <ActionEditor a={a} trigger={e.trigger} edit={(fn, k) => edit((d) => fn(d.actions[i]), k ? `a${i}-${k}` : undefined)} onRemove={() => { setActionResets(bumpResets(actionResets, i, e.actions.length - 1)); edit((d) => void d.actions.splice(i, 1)); }} />
+              </ScalingResetContext.Provider>
             ))}
             <Button small icon="plus" onClick={() => edit((d) => void d.actions.push(zAction.parse({ kind: "inflict", status: "BURN", potency: val(1), amount: val(0) })))}>
               Add action

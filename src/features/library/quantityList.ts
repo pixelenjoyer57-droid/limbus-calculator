@@ -47,3 +47,11 @@ export const removedMessage = (n: number, left: number) => `Quantity ${n} remove
 export const duplicateMessage = (n: number, other: number) => `Quantity ${n} was not changed: quantity ${other} already counts that.`;
 export const OLD_DUPLICATE_NOTE = "Two quantities count the same thing, so it is counted twice. This is allowed for older data.";
 export const groupName = (n: number, of: number) => `Quantity ${n} of ${of}`;
+
+/**
+ * Per-position counters that tell a value editor to forget its remembered scaling. Removing the item at `removed`
+ * changes what is shown at that position and after it, so those counters go up; earlier positions keep theirs.
+ */
+export function bumpResets(resets: number[], removed: number, length: number): number[] {
+  return Array.from({ length }, (_, j) => (resets[j] ?? 0) + (j >= removed ? 1 : 0));
+}

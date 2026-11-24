@@ -10,7 +10,7 @@ import { emptyWorkspace, newIdentity } from "../src/data/defaults";
 import { eff, mod, skill, onCoin } from "../src/data/build";
 import { useWorkspace } from "../src/store/workspace";
 import {
-  LIMIT_TEXT, addedMessage, duplicateOf, hasDuplicates, nextQuantity, quantityKey, removedMessage,
+  LIMIT_TEXT, addedMessage, bumpResets, duplicateOf, hasDuplicates, nextQuantity, quantityKey, removedMessage,
 } from "../src/features/library/quantityList";
 
 const st = (status: string, extra: Partial<Quantity> = {}): Quantity => zQuantity.parse({ kind: "statusPotency", who: "target", status, ...extra });
@@ -364,3 +364,11 @@ describe("builder rules", () => {
   });
 });
 
+
+describe("scaling memory reset after a removal", () => {
+  it("bumps the removed position and later ones, keeps earlier ones", () => {
+    expect(bumpResets([0, 2, 0], 1, 2)).toEqual([0, 3]);
+    expect(bumpResets([], 0, 2)).toEqual([1, 1]);
+    expect(bumpResets([4], 1, 0)).toEqual([]);
+  });
+});
