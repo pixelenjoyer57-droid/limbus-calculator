@@ -14,7 +14,7 @@ import { GradeBadge } from "../../ui/game";
 import { KIND_INFO } from "./kinds";
 import { EffectsPreview } from "./rules";
 import { SkillPreview } from "./skills";
-import { isLegacy, isNoTier } from "./GameList";
+import { isLegacy, isNoTier } from "./giftFilter";
 import "./gamedata.css";
 
 const MARK = "Not simulated (shown for reference):";
