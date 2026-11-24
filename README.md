@@ -1,28 +1,44 @@
-# Sinner's Workshop — Limbus custom kit lab
+<div align="center">
 
-A browser app for building **custom Limbus Company content** and testing it against the game's real combat rules:
+# Sinner's Workshop
 
-- **Builder** for Identities, E.G.O, enemies (including multi-part Abnormalities), encounters (waves), choice events with Skill Checks, E.G.O Gifts (with + / ++ versions), your own custom status effects and **custom coins**.
-- **Custom coins**: any coin can have its own Coin Power, damage type, sin, Heads chance or fixed result, or multiply the power on Heads; reusable **coin types** add Clash behaviour (normal / unbreakable / excision), cracked power, Paralyze immunity and rules carried by every coin of that type.
-- **Rule builder** for effects: "When [On Hit] → only if [target has 5+ Burn] → do [Inflict 2 Burn]". Every rule shows game-style text live, and the simulator actually runs it.
-- **Damage calculator**: one Clash or one-sided attack, run thousands of times through the real engine, with best/worst-case breakdowns that show every term of the damage formula for each coin.
-- **Battle simulator**: play a fight turn by turn (pick skills and targets, see Clash odds and every coin flip), auto-play it, or run hundreds of fights for win rates and per-unit averages.
-- **Teams**: 12 Sinners, Identity + level + Uptie + one E.G.O per grade, deployment order, gifts, starting E.G.O resources.
-- **Event tester**: success chance of every Sinner for each Skill Check.
+**Build custom Limbus Company kits and test them against the game's real combat rules.**
 
-It runs entirely in the browser (phone or PC) and works offline after the first visit.
+### [Open the app →](https://pixelenjoyer57-droid.github.io/limbus-calculator/)
 
-## Saving, sessions and moving between devices
+[![Test & deploy](https://github.com/pixelenjoyer57-droid/limbus-calculator/actions/workflows/pages.yml/badge.svg)](https://github.com/pixelenjoyer57-droid/limbus-calculator/actions/workflows/pages.yml)
+[![Code: MIT](https://img.shields.io/badge/code-MIT-blue)](LICENSE)
+[![Data: CC BY-SA 4.0](https://img.shields.io/badge/data-CC%20BY--SA%204.0-lightgrey)](LICENSE-DATA.md)
+[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/hZgMnDN5K)
 
-- Everything saves automatically in the browser ("Saved" at the top). There is **no "unsaved changes" prompt** and **Undo / Redo** (Ctrl+Z / Ctrl+Shift+Z) covers deletes too.
-- **Workshops** are separate save slots — switch between projects without losing anything.
-- The app remembers where you were: last screen, open sections, calculator inputs and a fight in progress (even after closing the tab).
-- To move work between phone and PC: **Save, share & settings → Download backup file** or **Get share code**, then import it on the other device. Single items have Export / Share buttons too.
-- The original one-page *Sinner's Workshop* export file can be imported directly.
+<img src=".github/assets/battle-simulator.png" alt="The battle simulator: your team and the enemies on a board, with skill slots, HP and SP for every unit" width="860">
 
-## Accuracy
+*Free, fan-made and non-commercial. Not affiliated with Project Moon.*
 
-Formulas come from the community wiki ([Damage Formula](https://limbuscompany.wiki.gg/wiki/Damage_Formula), [Battles](https://limbuscompany.wiki.gg/wiki/Battles), [Skills](https://limbuscompany.wiki.gg/wiki/Skills), [Sanity](https://limbuscompany.wiki.gg/wiki/Sanity), [Sin Resonance](https://limbuscompany.wiki.gg/wiki/Sin_Resonance), status pages). In short:
+</div>
+
+## What you can do
+
+- **Build** Identities, E.G.O, enemies (including multi-part Abnormalities), encounters, choice events with Skill Checks, E.G.O Gifts, your own statuses and custom coins.
+- **Write rules without code**, like "When [On Hit] → only if [target has 5+ Burn] → do [Inflict 2 Burn]". Every rule shows game-style text, and the simulator really runs it.
+- **Calculate** one Clash or attack thousands of times, with best and worst cases that show every term of the damage formula.
+- **Simulate** whole fights turn by turn on a battle board: pick skills and targets, see Clash odds and every coin flip, auto-play to the end, or run hundreds of fights for win rates.
+- **Use the real roster**: about 200 Identities, 110+ E.G.O, 1,150+ enemy variants, 700+ E.G.O Gifts and 1,250+ statuses from the game, ready to pick or to copy and edit.
+- **Plan teams** of 12 Sinners and test the Skill Checks of choice events.
+
+## Your work stays yours
+
+- Runs entirely in your browser, on phone or PC, and works offline after the first visit. No account, no ads, no analytics.
+- Everything saves automatically, and **Undo / Redo** (Ctrl+Z / Ctrl+Shift+Z) covers deletes too.
+- Separate **workshops** (save slots) keep projects apart, and the app remembers where you were, even in the middle of a fight.
+- Move your work between devices with a backup file or a share code (**Save, share & settings**).
+
+## How accurate is it?
+
+The combat engine follows the community wiki ([Damage Formula](https://limbuscompany.wiki.gg/wiki/Damage_Formula), [Battles](https://limbuscompany.wiki.gg/wiki/Battles), [Skills](https://limbuscompany.wiki.gg/wiki/Skills), [Sanity](https://limbuscompany.wiki.gg/wiki/Sanity), [Sin Resonance](https://limbuscompany.wiki.gg/wiki/Sin_Resonance) and the status pages), and its tests check it against the wiki's own worked examples. The in-app **How combat works** page explains every rule, and what the simulator simplifies (enemy AI, Low Morale chance, E.G.O Corrosion, slot weight and Aggro).
+
+<details>
+<summary>The damage formula in short</summary>
 
 ```
 Damage = floor( Coin Roll × (1 + Static) × (1 + Dynamic) )   (min 1, min 5% of the roll)
@@ -32,58 +48,25 @@ Resistance mod = x−1 (x ≥ 1) · (x−1)/2 (x < 1) · −0.5 (Immune)
 Heads chance = 50 + SP · Clash bonus = +1 per 3 levels · SP on Clash win = 10 + 2 × (rounds − 1)
 ```
 
-`tests/` checks these against the wiki's own worked examples (e.g. +37% for Slash ×1.5 & Wrath ×0.75, +250% at Stagger++ with ×1.5, ×1.44 for crit + 2 Fragile) and hand-calculated fights. The in-app **How combat works** page lists everything, including what the simulator simplifies (enemy AI, Low Morale chance, E.G.O Corrosion at −45 SP, slot weight / Aggro).
+</details>
 
-## Game data
-
-The app ships with in-game content imported from the [Limbus Company Wiki](https://limbuscompany.wiki.gg): about 197 Identities (Uptie 4), 114 E.G.O (Threadspin IV), 1158 enemy variants (human enemies and multi-part Abnormalities), 728 E.G.O Gifts and 1266 statuses. Pick them in the calculator, teams, encounters and simulator, or copy one into your workshop to edit it. Effects are converted from the wiki text automatically (roughly half of all effect sentences become simulated rules; the rest is shown as "Not simulated" notes).
-
-- **License / attribution:** the data is adapted from the [Limbus Company Wiki](https://limbuscompany.wiki.gg) (limbuscompany.wiki.gg), whose original text is licensed [**CC BY-SA 4.0**](https://creativecommons.org/licenses/by-sa/4.0/). **Changes were made**: pages were converted to compact JSON, values normalised (Uptie 4 / Threadspin IV), effect text partly converted into simulation rules, some entries merged or omitted. The adapted data stays under CC BY-SA 4.0. Official game names and text belong to Project Moon and are not covered by the wiki's license. No game art, logos, audio or fonts are included. Full credits: the in-app **About & credits** page and [NOTICE.md](NOTICE.md).
-- **Refresh it locally:** `npm run gamedata` fetches from the wiki and keeps a local cache in `.cache/wiki`; `npm run gamedata -- --offline` reuses the cache; `npm run gamedata -- --report <file>` writes the top unconverted sentences.
-- The files in `public/gamedata/` are **generated** (one item per line, so diffs stay readable). Don't edit them by hand; they are loaded on demand in the browser.
-
-## Development
-
-```bash
-npm install
-npm run dev        # local dev server
-npm test           # engine + formula tests (vitest)
-npm run build      # type-check and build to dist/
-```
-
-Stack: React 18 + TypeScript + Vite, zustand + immer for state, zod for validating saved/imported data, a Web Worker for simulations. Navigation uses the URL hash, so the build works from any sub-folder.
-
-```
-src/engine/    combat engine (formulas, statuses, effects, clashes, turns, calculator, batch runs) — no UI code
-src/data/      content schema, defaults/templates, import & migration
-src/store/     workspace (autosave, undo), session ("where was I"), settings, toasts
-src/features/  screens: home, library (builder), team, calc, sim, data, help
-src/ui/        accessible components (number steppers, sections, dialogs, tips)
-tests/         vitest suites
-```
-
-## Publishing on GitHub Pages
-
-The workflow in `.github/workflows/pages.yml` tests, builds and deploys on every push to `main` (or the development branch).
-One-time setup in the repository: **Settings → Pages → Build and deployment → Source: GitHub Actions**. The site then appears at
-`https://<your-user>.github.io/limbus-calculator/`.
+Effects of the in-game content are converted from the wiki text automatically. About half of all effect sentences run as rules; the rest are shown as "Not simulated" notes.
 
 ## Accessibility
 
-Dark / light / high-contrast themes, text size up to 160%, an extra-readable font (Atkinson Hyperlegible), reduced motion, compact or roomy spacing, optional inline hints, large touch targets, full keyboard use and screen-reader labels. Screens use one main action, collapsible sections that remember their state, templates instead of blank pages, and summaries of "things to check" instead of blocking errors.
+Dark, light and high-contrast themes, text up to 160%, an extra-readable font (Atkinson Hyperlegible), reduced motion, roomy or compact spacing, large touch targets, full keyboard use and screen-reader labels. Each screen has one main action, sections remember whether they're open, and templates mean you never start from a blank page.
 
----
+## Feedback and contributing
 
-## Legal notes
+- **Ideas, questions and custom kits:** the [Discord](https://discord.gg/hZgMnDN5K).
+- **Bugs and suggestions:** [open an issue](https://github.com/pixelenjoyer57-droid/limbus-calculator/issues/new/choose).
+- **Want to help build it?** Read the [contributing guide](.github/CONTRIBUTING.md) and the [code of conduct](.github/CODE_OF_CONDUCT.md).
+- **Found a security problem?** Please report it privately, as described in the [security policy](.github/SECURITY.md).
 
-Fan-made, free and non-commercial; **not affiliated with, endorsed by or connected to Project Moon**. Limbus Company and its names, text and characters belong to Project Moon. **Free and non-commercial: no ads, donations or paid features.** Rights holders: if you want something changed or removed, use the ["Rights holder request" form](https://github.com/pixelenjoyer57-droid/limbus-calculator/issues/new/choose) or message a moderator on the [Discord](https://discord.gg/hZgMnDN5K) and it will be handled promptly. See [NOTICE.md](NOTICE.md) for data attribution and third-party licenses and [docs/LEGAL-REVIEW.md](docs/LEGAL-REVIEW.md) for the (non-lawyer) review. Privacy: the app keeps everything in your browser, with no analytics or accounts.
+## Credits and license
 
-## License
-
-- **Code:** [MIT](LICENSE).
-- **Game data** (`public/gamedata/`): [CC BY-SA 4.0](LICENSE-DATA.md), adapted from the Limbus Company Wiki. This does **not** cover Project Moon's own material (names, skill/passive/Gift text and so on), which remains Project Moon's.
-- Third-party software and full attribution: [NOTICE.md](NOTICE.md).
-
-## Community
-
-Suggestions, questions and custom kits are welcome in the [Discord](https://discord.gg/hZgMnDN5K) or as [GitHub issues](https://github.com/pixelenjoyer57-droid/limbus-calculator/issues/new/choose). See [CONTRIBUTING.md](CONTRIBUTING.md) for the simple contribution terms. Security problems: [SECURITY.md](SECURITY.md).
+- **Game data** is adapted from the [Limbus Company Wiki](https://limbuscompany.wiki.gg), whose original text is licensed [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). **Changes were made:** pages were converted to compact JSON, values normalised (Uptie 4 / Threadspin IV), effect text partly converted into simulation rules, and some entries merged or omitted. The adapted data in `public/gamedata/` stays under [CC BY-SA 4.0](LICENSE-DATA.md).
+- **Code:** [MIT](LICENSE). Third-party software and full attribution: [NOTICE.md](NOTICE.md) and the in-app **About & credits** page.
+- **Limbus Company** and its names, text and characters belong to **Project Moon**, and are not covered by either license. No game art, logos, audio or fonts are included.
+- This is a free, non-commercial fan project, **not affiliated with, endorsed by or connected to Project Moon**. No ads, donations or paid features.
+- **Rights holders:** to have something changed or removed, use the ["Rights holder request" form](https://github.com/pixelenjoyer57-droid/limbus-calculator/issues/new/choose) or message a moderator on the [Discord](https://discord.gg/hZgMnDN5K). Requests are handled promptly.
