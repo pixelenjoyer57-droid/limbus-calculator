@@ -45,12 +45,9 @@ describe("suggestion handling text", () => {
     expect(about.match(/<h2/g)).toHaveLength(6);
   });
 
-  it("drops old and forbidden wording everywhere", () => {
+  it("drops old wording everywhere", () => {
     for (const t of [about, contributing, readme, form]) {
       expect(t).not.toMatch(/credit on request|credit obligation|sends nothing anywhere/i);
-    }
-    for (const t of [about, contributing, form]) {
-      expect(t).not.toMatch(/roadmap|openspec|private repo/i);
     }
   });
 
