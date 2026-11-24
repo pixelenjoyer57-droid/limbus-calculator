@@ -38,11 +38,34 @@ describe("suggestion handling text", () => {
 
   it("keeps new sentences short and adds no heading", () => {
     const start = about.indexOf(shared[0]);
-    const para = about.slice(start, about.indexOf("</p>", start)).replace(/<[^>]+>/g, "");
+    const end = about.indexOf("<strong>Rights holders:</strong>", start);
+    const para = about.slice(start, end).replace(/<[^>]+>/g, "");
     for (const sentence of para.split(/(?<=\.)\s+/)) {
       expect(sentence.split(" ").length).toBeLessThanOrEqual(25);
     }
     expect(about.match(/<h2/g)).toHaveLength(6);
+  });
+
+  it("splits the handling text into exactly three paragraphs", () => {
+    const start = about.indexOf(shared[0]);
+    const end = about.indexOf("<strong>Rights holders:</strong>", start);
+    const block = "<p> " + about.slice(start, end);
+    expect(block.match(/<p>/g)).toHaveLength(3);
+    const paras = block.split("</p>").map((p) => p.replace(/<[^>]+>/g, "").trim()).filter(Boolean);
+    expect(paras[0].startsWith("We name you in public")).toBe(true);
+    expect(paras[0].endsWith("Giving a name is optional.")).toBe(true);
+    expect(paras[1].startsWith("We may copy")).toBe(true);
+    expect(paras[2].startsWith("To ask us to name you")).toBe(true);
+    expect(about).toContain("comment on your <Ext to={ISSUES}>GitHub issue</Ext>. Please leave personal details");
+  });
+
+  it("links the contributing guide from the form and keeps the checkbox as it was", () => {
+    expect(form).toContain(
+      "How we handle suggestions (credit, private notes, deleting your name) is in the [contributing guide](https://github.com/pixelenjoyer57-droid/limbus-calculator/blob/main/.github/CONTRIBUTING.md).",
+    );
+    expect(form).toContain(
+      "- label: I made this suggestion myself or may share it. I allow it to be used in the app without payment. I am not posting leaks or unreleased game material. required: true",
+    );
   });
 
   it("drops old wording everywhere", () => {

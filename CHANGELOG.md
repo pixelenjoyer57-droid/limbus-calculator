@@ -4,6 +4,7 @@ Notable changes to Sinner's Workshop. Versions follow [semantic versioning](http
 
 ## Unreleased
 
+- The About page's suggestion terms are split into short paragraphs; the suggestion form links to the contributing guide.
 - Clearer terms for how suggestions are handled (About page, Contributing guide, suggestion form).
 - **Easier to read:** better contrast in the light theme (the gold links, active menu item, selected tabs and the gold button and skip link) and for the small grey text on a selected list item in the dark theme. Selected tabs and list items now also show a mark besides colour. The light high-contrast theme now also applies when your device is set to light.
 
