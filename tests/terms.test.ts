@@ -50,7 +50,8 @@ describe("suggestion handling text", () => {
     const start = about.indexOf(shared[0]);
     const end = about.indexOf("<strong>Rights holders:</strong>", start);
     const block = "<p> " + about.slice(start, end);
-    expect(block.match(/<p>/g)).toHaveLength(3);
+    expect(block.match(/<p>/g)).toHaveLength(4); // three handling paragraphs plus the Rights holders one
+    expect(block.match(/<\/p>/g)).toHaveLength(3);
     const paras = block.split("</p>").map((p) => p.replace(/<[^>]+>/g, "").trim()).filter(Boolean);
     expect(paras[0].startsWith("We name you in public")).toBe(true);
     expect(paras[0].endsWith("Giving a name is optional.")).toBe(true);
