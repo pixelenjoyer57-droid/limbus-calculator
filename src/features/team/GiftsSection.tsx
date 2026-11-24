@@ -153,7 +153,7 @@ function GiftGrid({ teamId, gifts, setMsg, onSnapshotNeeded }: { teamId: string;
       <div className="gg-filters">
         <div className="field full">
           <label className="label" htmlFor="gg-search">Search gifts</label>
-          <input id="gg-search" className="input" type="search" placeholder="Name, keyword, tag, source…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input id="gg-search" className="input" type="search" maxLength={200} placeholder="Name, keyword, tag, source…" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
         <Select label="Tier" value={g.tier} onChange={(v) => change({ tier: v })} placeholder="All tiers" options={[...GIFT_TIERS.map((t) => ({ value: t as string, label: t === "EX" ? "EX" : `Tier ${t}` })), { value: "none", label: "No tier" }]} />
         <Select label="Keyword" value={g.keyword} onChange={(v) => change({ keyword: v })} placeholder="All keywords" options={GIFT_KEYWORDS.filter((k) => k !== "NONE").map((k) => ({ value: k as string, label: capWord(k) }))} />

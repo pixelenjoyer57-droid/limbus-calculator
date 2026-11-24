@@ -5,7 +5,7 @@ import { zTeam, type Gift, type Team } from "../src/data/schema";
 import { NO_GIFT_FILTER, giftPasses, keywordText, tierText } from "../src/features/library/giftFilter";
 import { MAX_TEAM_GIFTS, countById, countText, giftButtonName, giftSummary, limitMessage, restoreGift, toggleGift, type TeamGift } from "../src/features/team/giftToggle";
 import { pickerLabel } from "../src/ui/pickerLabel";
-import { PAGE, pageInfo, searchItems, showingText } from "../src/lib/search";
+import { PAGE, pageInfo, searchItems, searchWords, showingText } from "../src/lib/search";
 
 const gift = (name: string, over: Partial<Gift> = {}): Gift => newGift({ id: "g:" + name, name, ...over });
 const entries = (n: number): TeamGift[] => Array.from({ length: n }, (_, i) => ({ giftId: `g:${i}`, level: 0 }));
@@ -61,6 +61,14 @@ describe("search and paging (shared)", () => {
   it("matches every word, in name order", () => {
     const r = searchItems(items, "gift 00 burn");
     expect(r.map((x) => x.name)).toEqual(["Gift 001", "Gift 003", "Gift 005", "Gift 007", "Gift 009"]);
+  });
+  it("cuts a huge query to 10 words", () => {
+    expect(searchWords("word ".repeat(100_000)).length).toBeLessThanOrEqual(10);
+    expect(searchWords("a".repeat(5000)).join("").length).toBeLessThanOrEqual(200);
+  });
+  it("leaves normal searches alone", () => {
+    expect(searchWords("  Burn  Tier III ")).toEqual(["burn", "tier", "iii"]);
+    expect(searchWords("")).toEqual([]);
   });
   it("takes an extra test", () => {
     expect(searchItems(items, "", (x) => x.keyword === "BURN")).toHaveLength(65);

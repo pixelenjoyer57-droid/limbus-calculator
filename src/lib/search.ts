@@ -21,7 +21,10 @@ export function haystack(x: Searchable): string {
   return h;
 }
 
-export const searchWords = (q: string) => q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+export const MAX_QUERY_CHARS = 200;
+export const MAX_QUERY_WORDS = 10;
+/** Words of a search query. A pasted wall of text is cut to 200 characters and 10 words. */
+export const searchWords = (q: string) => q.slice(0, MAX_QUERY_CHARS).trim().toLowerCase().split(/\s+/).filter(Boolean).slice(0, MAX_QUERY_WORDS);
 
 /** Items matching every word of the query (and the optional extra test), sorted by name. */
 export function searchItems<T extends Searchable>(source: readonly T[], query: string, extra?: (x: T) => boolean): T[] {
