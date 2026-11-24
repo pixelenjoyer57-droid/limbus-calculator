@@ -72,7 +72,9 @@ const themes: Record<string, Tokens> = {
   "device-light-high": { ...root, ...media, ...high, ...mediaHigh },
 };
 
-const COLOR_TOKENS = ["bg", "bg-2", "panel", "panel-2", "line", "line-soft", "text", "text-2", "muted", "gold", "gold-soft", "focus", "on-gold"];
+// Gift tier fills (team gift grid). The tier is always written as text; the fill is an extra.
+const TIER_TOKENS = ["tier-1", "tier-2", "tier-3", "tier-4", "tier-5", "tier-ex", "tier-none"];
+const COLOR_TOKENS = ["bg", "bg-2", "panel", "panel-2", "line", "line-soft", "text", "text-2", "muted", "gold", "gold-soft", "focus", "on-gold", ...TIER_TOKENS];
 
 function color(theme: string, token: string) {
   const v = themes[theme][token];
@@ -107,6 +109,12 @@ ui("on-gold", ["gold"]);
 ui("focus", ["on-gold"]);
 // Gold bars, histogram, coin dots, outlines, checkbox accent.
 ui("gold", SURFACES);
+// Gift tiers: the tier text sits on its fill (4.5:1). The on-state indicator (gold border, check and "On") must be
+// 3:1 on the button surfaces it can sit on, plain and tinted.
+text("text", TIER_TOKENS, "text");
+ui("gold", TINTS);
+// Tier borders (EX double, "No tier" dashed) use the secondary text colour against the surfaces and the tier fills.
+ui("text-2", [...SURFACES, ...TIER_TOKENS]);
 // Borders: in the standard themes controls are identified by their labels; the
 // high-contrast themes must show their lines at 3:1.
 for (const t of ["dark-high", "light-high", "device-light-high"]) {

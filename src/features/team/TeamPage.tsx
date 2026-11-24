@@ -8,11 +8,12 @@ import { useWorkspace } from "../../store/workspace";
 import { useSession } from "../../store/session";
 import { toast } from "../../store/toast";
 import { href, navigate } from "../../lib/router";
-import { Button, Check, NumberInput, Select, TextInput } from "../../ui/controls";
+import { Button, Check, NumberInput, TextInput } from "../../ui/controls";
 import { EmptyState, Section } from "../../ui/layout";
 import { Icon } from "../../ui/icons";
 import { ContentPicker, useResolvedItem } from "../../ui/ContentPicker";
 import type { Ego, Identity } from "../../data/schema";
+import { GiftsSection } from "./GiftsSection";
 
 const emptyMember = (): TeamMember => ({ identityId: null, level: 65, uptie: 4, egos: { ZAYIN: null, TETH: null, HE: null, WAW: null, ALEPH: null } });
 
@@ -88,26 +89,6 @@ function MemberCard({ team, sinner, edit }: { team: Team; sinner: Sinner; edit: 
   );
 }
 
-function TeamGiftRow({ giftId, level, onLevel, onPick, onRemove }: { giftId: string; level: number; onLevel: (n: number) => void; onPick: (id: string | null) => void; onRemove: () => void }) {
-  const gift = useResolvedItem("gift", giftId).item;
-  return (
-    <div className="row" style={{ alignItems: "flex-end", marginBottom: 6 }}>
-      <div style={{ flex: 1, minWidth: 180 }}>
-        <ContentPicker kind="gift" label="Gift" value={giftId} onChange={onPick} />
-      </div>
-      <div style={{ width: 150 }}>
-        <Select
-          label="Enhanced"
-          value={String(level)}
-          onChange={(v) => onLevel(Number(v))}
-          options={[{ value: "0", label: "Base" }, { value: "1", label: "+", disabled: !gift?.plus1 }, { value: "2", label: "++", disabled: !gift?.plus2 }]}
-        />
-      </div>
-      <Button icon="trash" small variant="ghost" label="Remove gift" onClick={onRemove} />
-    </div>
-  );
-}
-
 function TeamEditor({ team }: { team: Team }) {
   const upsert = useWorkspace((s) => s.upsert);
   const [showAll, setShowAll] = useState(false);
@@ -160,12 +141,7 @@ function TeamEditor({ team }: { team: Team }) {
       </Section>
 
       <Section id="team-gifts" title="E.G.O Gifts" summary={`${team.gifts.length} gift${team.gifts.length === 1 ? "" : "s"}`}>
-        {team.gifts.map((g, i) => (
-          <TeamGiftRow key={i} giftId={g.giftId} level={g.level} onLevel={(n) => edit((d) => void (d.gifts[i].level = n))} onPick={(v) => v && edit((d) => void (d.gifts[i].giftId = v))} onRemove={() => edit((d) => void d.gifts.splice(i, 1))} />
-        ))}
-        <div style={{ maxWidth: 360 }}>
-          <ContentPicker kind="gift" label="Add a gift" value={null} onChange={(v) => v && edit((d) => void d.gifts.push({ giftId: v, level: 0 }))} />
-        </div>
+        <GiftsSection team={team} edit={edit} />
       </Section>
 
       <Section id="team-res" title="Starting E.G.O resources" defaultOpen={false} summary={SINS.filter((s) => team.startResources[s]).map((s) => `${SIN_LABEL[s]} ${team.startResources[s]}`).join(", ") || "none"}>

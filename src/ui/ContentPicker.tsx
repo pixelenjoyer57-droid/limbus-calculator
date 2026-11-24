@@ -1,5 +1,6 @@
 // Reusable picker for content that can come from the user's workshop or from the game data.
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { usePagedSearch } from "./usePagedSearch";
 import { COLLECTION, type AnyContent } from "../data/schema";
 import { useWorkspace } from "../store/workspace";
 import { useGameData, useGameItems, isGameId, gameKindOfId, type GameItem } from "../gamedata";
@@ -12,20 +13,7 @@ import "./contentpicker.css";
 export type PickKind = "identity" | "ego" | "enemy" | "gift";
 type PickItem = AnyContent & { name: string; source?: string; tags?: string[] };
 
-const PAGE = 60;
 const KIND_WORD: Record<PickKind, string> = { identity: "Identity", ego: "E.G.O", enemy: "enemy", gift: "E.G.O Gift" };
-const sortKey = (n: string) => n.replace(/[^\p{L}\p{N} ]/gu, "").trim().toLowerCase();
-
-const hay = new WeakMap<object, string>();
-function haystack(x: PickItem): string {
-  let h = hay.get(x);
-  if (h === undefined) {
-    const a = x as unknown as { name: string; source?: string; tags?: string[]; sinner?: string; grade?: string; keyword?: string };
-    h = [a.name, a.source, a.sinner, a.grade, a.keyword, ...(a.tags ?? [])].filter(Boolean).join(" | ").toLowerCase();
-    hay.set(x, h);
-  }
-  return h;
-}
 
 /**
  * Finds an item by id in the user's workspace or in the game data (starts loading the game
@@ -81,9 +69,6 @@ function PickerDialog({ kind, value, label, filter, allowNone, noneLabel, onClos
   const [tab, setTab] = useState<"own" | "game">(isGameId(value) ? "game" : "own");
   const game = useGameItems(kind, tab === "game");
   const total = useGameData((s) => s.index?.counts[{ identity: "identities", ego: "egos", enemy: "enemies", gift: "gifts" }[kind]]);
-  const [query, setQuery] = useState("");
-  const [shown, setShown] = useState(PAGE);
-  const q = useDeferredValue(query);
   const searchRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const t = setTimeout(() => searchRef.current?.focus(), 30);
@@ -93,10 +78,7 @@ function PickerDialog({ kind, value, label, filter, allowNone, noneLabel, onClos
   const ownFiltered = useMemo(() => (filter ? own.filter(filter) : own), [own, filter]);
   const gameFiltered = useMemo(() => (filter ? (game.items as unknown as PickItem[]).filter(filter) : (game.items as unknown as PickItem[])), [game.items, filter]);
   const source = tab === "own" ? ownFiltered : gameFiltered;
-  const results = useMemo(() => {
-    const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    return [...source].filter((x) => words.every((w) => haystack(x).includes(w))).sort((a, b) => sortKey(a.name).localeCompare(sortKey(b.name)));
-  }, [source, q]);
+  const { query, setQuery, q, results, shown, visible, resetPaging, showMore } = usePagedSearch(source);
 
   const loadingGame = tab === "game" && game.status !== "ready" && game.status !== "error";
   return (
@@ -105,7 +87,7 @@ function PickerDialog({ kind, value, label, filter, allowNone, noneLabel, onClos
         <Tabs
           label="Where from"
           value={tab}
-          onChange={(v) => { setTab(v); setShown(PAGE); }}
+          onChange={(v) => { setTab(v); resetPaging(); }}
           tabs={[
             { value: "own", label: `Your content (${ownFiltered.length})` },
             { value: "game", label: `From the game (${game.status === "ready" ? gameFiltered.length : total ?? "…"})` },
@@ -113,7 +95,7 @@ function PickerDialog({ kind, value, label, filter, allowNone, noneLabel, onClos
         />
         <div className="field">
           <label className="sr-only" htmlFor="picker-search">Search {KIND_WORD[kind]} by name, tag, Sinner or source</label>
-          <input id="picker-search" ref={searchRef} className="input" type="search" autoFocus placeholder="Search name, tag, Sinner, source…" value={query} onChange={(e) => { setQuery(e.target.value); setShown(PAGE); }} />
+          <input id="picker-search" ref={searchRef} className="input" type="search" autoFocus placeholder="Search name, tag, Sinner, source…" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
         {allowNone && (
           <button type="button" className="list-item picker-row" aria-current={!value ? "true" : undefined} onClick={() => onPick(null)}>
@@ -135,7 +117,7 @@ function PickerDialog({ kind, value, label, filter, allowNone, noneLabel, onClos
           <>
             <p className="small muted" role="status">Showing {Math.min(shown, results.length)} of {results.length}</p>
             <ul className="picker-list">
-              {results.slice(0, shown).map((x) => (
+              {visible.map((x) => (
                 <li key={x.id}>
                   <button type="button" className="list-item picker-row" aria-current={x.id === value ? "true" : undefined} onClick={() => onPick(x.id)}>
                     <span className="li-main">
@@ -146,7 +128,7 @@ function PickerDialog({ kind, value, label, filter, allowNone, noneLabel, onClos
                 </li>
               ))}
             </ul>
-            {results.length > shown && <Button block onClick={() => setShown(shown + PAGE)}>Show more ({results.length - shown} left)</Button>}
+            {results.length > shown && <Button block onClick={showMore}>Show more ({results.length - shown} left)</Button>}
           </>
         )}
       </div>
