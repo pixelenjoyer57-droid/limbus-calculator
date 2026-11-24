@@ -1,0 +1,44 @@
+/* Team gift grid. Tier is always written as text; colour is an extra. */
+.gg-count { font-weight: 700; margin: 0; }
+.gg-msg { margin: 0; min-height: 1.4em; color: var(--text-2); font-size: 0.92rem; }
+.gg-msg:empty { min-height: 0; }
+.gg-heading { margin: 0 0 8px; scroll-margin-block: 70px 90px; }
+.gg-filters { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; margin-bottom: 10px; }
+.gg-filters .full { grid-column: 1 / -1; }
+.gg-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.gg-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); }
+.gg-btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left;
+  min-height: var(--tap); min-width: 0; padding: 10px 12px; font: inherit; color: var(--text);
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius-sm); cursor: pointer;
+  scroll-margin-block: 70px 90px; /* keeps a focused button clear of the sticky bars */
+}
+.gg-btn:hover { border-color: var(--gold); }
+.gg-btn[aria-pressed="true"] { background: var(--gold-soft); border: 3px solid var(--gold); padding: 8px 10px; }
+.gg-name { font-weight: 600; overflow-wrap: anywhere; }
+.gg-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.86rem; color: var(--text-2); }
+.gg-on { display: inline-flex; align-items: center; gap: 4px; min-height: 1.2em; font-size: 0.86rem; font-weight: 700; color: var(--gold); }
+.gg-tier { padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--text); font-weight: 700; white-space: nowrap; }
+.gg-tier[data-tier="I"] { background: var(--tier-1); }
+.gg-tier[data-tier="II"] { background: var(--tier-2); }
+.gg-tier[data-tier="III"] { background: var(--tier-3); }
+.gg-tier[data-tier="IV"] { background: var(--tier-4); }
+.gg-tier[data-tier="V"] { background: var(--tier-5); }
+.gg-tier[data-tier="EX"] { background: var(--tier-ex); border: 3px double var(--text-2); }
+.gg-tier[data-tier="none"] { background: var(--tier-none); border: 1px dashed var(--text-2); }
+.gg, .gg-grid { min-width: 0; max-width: 100%; }
+.gg-row { align-items: flex-end; margin-bottom: 6px; min-width: 0; }
+.gg-row-pick { flex: 1 1 180px; min-width: 0; }
+.gg-row-pick .picker-btn { max-width: 100%; }
+.gg-row-pick .picker-name { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.gg-row-pick .picker-btn { height: auto; flex-wrap: wrap; }
+.gg-row-pick .picker-name { flex: 1 1 14ch; }
+.gg-row-level { flex: 0 1 150px; min-width: 0; }
+.gg-filters > * { min-width: 0; }
+.gg { contain: inline-size; } /* the grid fits its parent instead of widening the page */
+.gg-row-pick { contain: inline-size; } /* a long gift name wraps instead of widening the page */
+/* Every control in this section is at least 44 by 44 px, with gaps between them. */
+.gg .tab { min-height: var(--tap); }
+.gg-actions .btn.small { min-height: var(--tap); }
+.gg-row .btn.icon.small { width: var(--tap); min-height: var(--tap); }
+.gg-actions { gap: 10px; }

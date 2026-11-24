@@ -10,13 +10,12 @@ import { Button, Check, Select } from "../../ui/controls";
 import { EmptyState, Notice } from "../../ui/layout";
 import { GradeBadge } from "../../ui/game";
 import { KIND_INFO } from "./kinds";
+import { capWord, giftPasses, isNoTier } from "./giftFilter";
 import "./gamedata.css";
 
 const PAGE = 60;
 
-export const isNoTier = (g: Gift) => g.tags.includes("No tier (story/other)");
-export const isLegacy = (g: Gift) => g.tags.includes("Legacy");
-const cap = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
+const cap = capWord;
 
 export function gameSubtitle(item: GameItem): string {
   switch (item.kind) {
@@ -74,10 +73,7 @@ export default function GameList({ kind, selectedId }: { kind: GameKind; selecte
     return sorted.filter((x) => {
       if (sinner && (x as Identity).sinner !== sinner) return false;
       if (kind === "gift") {
-        const g = x as Gift;
-        if (!legacy && isLegacy(g)) return false;
-        if (tier && (tier === "none" ? !isNoTier(g) : isNoTier(g) || g.tier !== tier)) return false;
-        if (keyword && g.keyword !== keyword) return false;
+        if (!giftPasses(x as Gift, { tier, keyword, legacy })) return false;
       }
       const h = haystack(x);
       return words.every((w) => h.includes(w));
