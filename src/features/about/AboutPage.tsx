@@ -95,8 +95,14 @@ export default function AboutPage() {
       <Card>
         <h2 id="about-contact">Suggestions and contact</h2>
         <p>
-          Ideas, bug reports and corrections are welcome in the <Ext to={DISCORD}>Discord</Ext> or as <Ext to={ISSUES}>GitHub issues</Ext>. By sending a suggestion you allow it to be used to improve this app without payment or
-          credit obligation. Please do not post other people's private information, and do not post leaked or unreleased game material. The Discord is for people aged 13 or older.
+          Ideas, bug reports and corrections are welcome in the <Ext to={DISCORD}>Discord</Ext> or as <Ext to={ISSUES}>GitHub issues</Ext>. By sending a suggestion you allow it to be used to improve this app without
+          payment. Please do not post other people's private information, and do not post leaked or unreleased game material. The Discord is for people aged 13 or older.
+        </p>
+        <p>
+          We name you in public, for example in the changelog, only if you say yes. Otherwise it says "community suggestion". We keep only your display name, the channel and the date. Giving a name is optional.
+          We may copy suggestions, bug reports and custom kits you post on Discord or GitHub into our private notes. We may read them with third-party AI tools to help plan the work. We keep your name while we consider
+          the idea. We delete it from our notes on request. Your original post stays under Discord's or GitHub's own rules. To ask us to name you, or to delete your name, message a Discord moderator or comment on
+          your <Ext to={ISSUES}>GitHub issue</Ext>. Please leave personal details out of public comments. The app does not send your workshops or data anywhere. See Privacy above for the host's logs.
         </p>
         <p>
           <strong>Rights holders:</strong> to request a takedown, correction or change of credit, use the <Ext to={ISSUES}>"Rights holder request" form</Ext> or message a Discord moderator.

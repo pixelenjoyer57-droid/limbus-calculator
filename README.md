@@ -61,6 +61,7 @@ Dark, light and high-contrast themes, text up to 160%, an extra-readable font (A
 - **Ideas, questions and custom kits:** the [Discord](https://discord.gg/hZgMnDN5K).
 - **Bugs and suggestions:** [open an issue](https://github.com/pixelenjoyer57-droid/limbus-calculator/issues/new/choose).
 - **Want to help build it?** Read the [contributing guide](.github/CONTRIBUTING.md) and the [code of conduct](.github/CODE_OF_CONDUCT.md).
+- **How we handle suggestions:** see the [contributing guide](.github/CONTRIBUTING.md).
 - **Found a security problem?** Please report it privately, as described in the [security policy](.github/SECURITY.md).
 
 ## Credits and license
