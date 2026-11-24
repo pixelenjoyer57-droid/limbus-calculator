@@ -4,7 +4,7 @@ import { encodeShareCode, importAny, itemsPayload } from "../src/data/migrate";
 import { zTeam, type Gift, type Team } from "../src/data/schema";
 import { NO_GIFT_FILTER, giftPasses, keywordText, tierText } from "../src/features/library/giftFilter";
 import { MAX_TEAM_GIFTS, countById, countText, giftButtonName, limitMessage, restoreGift, toggleGift, type TeamGift } from "../src/features/team/giftToggle";
-import { PAGE, pageInfo, searchItems } from "../src/lib/search";
+import { PAGE, pageInfo, searchItems, showingText } from "../src/lib/search";
 
 const gift = (name: string, over: Partial<Gift> = {}): Gift => newGift({ id: "g:" + name, name, ...over });
 const entries = (n: number): TeamGift[] => Array.from({ length: n }, (_, i) => ({ giftId: `g:${i}`, level: 0 }));
@@ -63,6 +63,10 @@ describe("search and paging (shared)", () => {
   });
   it("takes an extra test", () => {
     expect(searchItems(items, "", (x) => x.keyword === "BURN")).toHaveLength(65);
+  });
+  it("words the count, with the total when narrowed", () => {
+    expect(showingText(130, 60, 130)).toBe("Showing 60 of 130");
+    expect(showingText(5, 60, 728)).toBe("Showing 5 of 5 (728 in total)");
   });
   it("pages 60 at a time", () => {
     expect(PAGE).toBe(60);

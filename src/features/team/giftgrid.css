@@ -26,3 +26,12 @@
 .gg-tier[data-tier="V"] { background: var(--tier-5); }
 .gg-tier[data-tier="EX"] { background: var(--tier-ex); border: 3px double var(--text-2); }
 .gg-tier[data-tier="none"] { background: var(--tier-none); border: 1px dashed var(--text-2); }
+.gg, .gg-grid { min-width: 0; max-width: 100%; }
+.gg-row { align-items: flex-end; margin-bottom: 6px; min-width: 0; }
+.gg-row-pick { flex: 1 1 180px; min-width: 0; }
+.gg-row-pick .picker-btn { max-width: 100%; }
+.gg-row-pick .picker-name { overflow: hidden; text-overflow: ellipsis; }
+.gg-row-level { flex: 0 1 150px; min-width: 0; }
+.gg-filters > * { min-width: 0; }
+.gg { contain: inline-size; } /* the grid fits its parent instead of widening the page */
+.gg-row-pick { contain: inline-size; } /* a long gift name shortens with "…" instead of widening the page */

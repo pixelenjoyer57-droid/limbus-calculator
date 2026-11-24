@@ -36,3 +36,8 @@ export function pageInfo(total: number, shown: number) {
   const visible = Math.min(shown, total);
   return { visible, left: Math.max(0, total - shown), nextShown: shown + PAGE };
 }
+
+/** "Showing 60 of 130", with "(728 in total)" when a filter or search narrows the list. */
+export function showingText(results: number, shown: number, sourceTotal: number | undefined): string {
+  return `Showing ${Math.min(shown, results)} of ${results}${sourceTotal !== undefined && results !== sourceTotal ? ` (${sourceTotal} in total)` : ""}`;
+}

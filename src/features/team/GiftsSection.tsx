@@ -11,6 +11,7 @@ import { Button, Check, Select } from "../../ui/controls";
 import { Icon } from "../../ui/icons";
 import { EmptyState, Notice, Tabs } from "../../ui/layout";
 import { ContentPicker, useResolvedItem } from "../../ui/ContentPicker";
+import { showingText } from "../../lib/search";
 import { usePagedSearch } from "../../ui/usePagedSearch";
 import { capWord, giftPasses, keywordText, tierText, isNoTier } from "../library/giftFilter";
 import { countText, giftButtonName, limitMessage, restoreGift, toggleGift } from "./giftToggle";
@@ -29,9 +30,9 @@ const GiftButton = memo(function GiftButton({ gift, on, own, index, onToggle }: 
       data-gg-index={index}
       onClick={() => onToggle(gift)}
     >
-      <span className="gg-name">{gift.name || "Untitled"}</span>
+      <span className="gg-name">{gift.name || "Untitled"}</span>{" "}
       <span className="gg-meta">
-        <span className="gg-tier" data-tier={tierKey(gift)}>{tierText(gift)}</span>
+        <span className="gg-tier" data-tier={tierKey(gift)}>{tierText(gift)}</span>{" "}
         <span className="gg-kw">{keywordText(gift)}</span>
       </span>
       <span className="gg-on" aria-hidden="true">
@@ -93,8 +94,9 @@ function GiftGrid({ teamId, gifts, setMsg, onSnapshotNeeded }: { teamId: string;
       if (r.kind === "added") {
         setMsg(`Added ${name}.`);
       } else {
-        setMsg(`Removed ${name}.`);
-        toast(`Removed ${name}. ${countText(r.gifts.length)}.`, "ok", {
+        // The toast announces the removal and offers Undo; the count line announces the new count.
+        setMsg("");
+        toast(`Removed ${name}.`, "ok", {
           label: "Undo",
           run: () => {
             const st = useWorkspace.getState();
@@ -105,8 +107,7 @@ function GiftGrid({ teamId, gifts, setMsg, onSnapshotNeeded }: { teamId: string;
               return;
             }
             st.upsert({ ...t, gifts: back });
-            setMsg(`Put ${name} back.`);
-            toast(`Put ${name} back. ${countText(back.length)}.`);
+            setMsg(""); // the count line announces the new count
           },
         });
       }
@@ -115,14 +116,16 @@ function GiftGrid({ teamId, gifts, setMsg, onSnapshotNeeded }: { teamId: string;
   );
 
   // Status for screen readers: updated once typing pauses, not on every key.
+  const isOwnTab = g.tab === "own";
   const loading = g.tab === "game" && game.status !== "ready" && game.status !== "error";
-  const statusText = `Showing ${Math.min(shown, results.length)} of ${results.length}`;
+  const failed = !isOwnTab && game.status === "error";
+  const statusText = showingText(results.length, shown, undefined);
   const [settled, setSettled] = useState("");
   useEffect(() => {
-    if (loading) return;
+    if (loading || failed) return;
     const t = setTimeout(() => setSettled(statusText), 500);
     return () => clearTimeout(t);
-  }, [statusText, loading]);
+  }, [statusText, loading, failed]);
 
   // After "Show more": focus stays on the button; if it goes away (nothing left), focus the first new gift.
   const wrap = useRef<HTMLDivElement>(null);
@@ -165,8 +168,8 @@ function GiftGrid({ teamId, gifts, setMsg, onSnapshotNeeded }: { teamId: string;
           <Button small onClick={() => document.getElementById("gg-team-heading")?.focus()}>Go to your team's gifts</Button>
         </div>
       </div>
-      <p className="gd-count" aria-hidden="true">{loading ? "" : `${statusText}${sourceTotal !== undefined && results.length !== sourceTotal ? ` (${sourceTotal} in total)` : ""}`}</p>
-      <p className="sr-only" role="status">{loading ? "" : settled}</p>
+      <p className="gd-count" aria-hidden="true">{loading || failed ? "" : showingText(results.length, shown, sourceTotal)}</p>
+      <p className="sr-only" role="status">{loading || failed ? "" : settled}</p>
       <div role="tabpanel" aria-label={isOwn ? "Your content" : "From the game"}>
         {!isOwn && game.status === "error" ? (
           <Notice kind="error">
@@ -205,11 +208,11 @@ function GiftGrid({ teamId, gifts, setMsg, onSnapshotNeeded }: { teamId: string;
 function TeamGiftRow({ giftId, level, onLevel, onPick, onRemove }: { giftId: string; level: number; onLevel: (n: number) => void; onPick: (id: string | null) => void; onRemove: () => void }) {
   const gift = useResolvedItem("gift", giftId).item;
   return (
-    <div className="row" style={{ alignItems: "flex-end", marginBottom: 6 }}>
-      <div style={{ flex: 1, minWidth: 180 }}>
+    <div className="row gg-row">
+      <div className="gg-row-pick">
         <ContentPicker kind="gift" label="Gift" value={giftId} onChange={onPick} />
       </div>
-      <div style={{ width: 150 }}>
+      <div className="gg-row-level">
         <Select
           label="Enhanced"
           value={String(level)}
