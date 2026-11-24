@@ -13,7 +13,7 @@ const form = read(formRaw);
 const shared = [
   'We name you in public, for example in the changelog, only if you say yes. Otherwise it says "community suggestion".',
   "We keep only your display name, the channel and the date. Giving a name is optional.",
-  "We may copy suggestions, bug reports and custom kits you post on Discord or GitHub into our private notes, and read them with third-party AI tools to help plan the work.",
+  "We may copy suggestions, bug reports and custom kits you post on Discord or GitHub into our private notes. We may read them with third-party AI tools to help plan the work.",
   "We keep your name while we consider the idea. We delete it from our notes on request. Your original post stays under Discord's or GitHub's own rules.",
   "Please leave personal details out of public comments.",
 ];
@@ -36,11 +36,11 @@ describe("suggestion handling text", () => {
     expect(about).toContain("The app does not send your workshops or data anywhere. See Privacy above for the host's logs.");
   });
 
-  it("keeps new sentences short (the agreed copy sentence has 31 words) and adds no heading", () => {
+  it("keeps new sentences short and adds no heading", () => {
     const start = about.indexOf(shared[0]);
     const para = about.slice(start, about.indexOf("</p>", start)).replace(/<[^>]+>/g, "");
     for (const sentence of para.split(/(?<=\.)\s+/)) {
-      expect(sentence.split(" ").length).toBeLessThanOrEqual(32);
+      expect(sentence.split(" ").length).toBeLessThanOrEqual(25);
     }
     expect(about.match(/<h2/g)).toHaveLength(6);
   });
