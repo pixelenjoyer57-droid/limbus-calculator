@@ -30,8 +30,10 @@
 .gg-row { align-items: flex-end; margin-bottom: 6px; min-width: 0; }
 .gg-row-pick { flex: 1 1 180px; min-width: 0; }
 .gg-row-pick .picker-btn { max-width: 100%; }
-.gg-row-pick .picker-name { overflow: hidden; text-overflow: ellipsis; }
+.gg-row-pick .picker-name { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.gg-row-pick .picker-btn { height: auto; flex-wrap: wrap; }
+.gg-row-pick .picker-name { flex: 1 1 14ch; }
 .gg-row-level { flex: 0 1 150px; min-width: 0; }
 .gg-filters > * { min-width: 0; }
 .gg { contain: inline-size; } /* the grid fits its parent instead of widening the page */
-.gg-row-pick { contain: inline-size; } /* a long gift name shortens with "…" instead of widening the page */
+.gg-row-pick { contain: inline-size; } /* a long gift name wraps instead of widening the page */
