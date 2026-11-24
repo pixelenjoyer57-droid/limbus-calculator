@@ -1,8 +1,8 @@
 // Rule builder for effects: When <trigger> · Only if <conditions> · Do <actions>.
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { Draft } from "immer";
 import {
-  ACTIONS, CONDITIONS, MOD_STATS, OPS, QUANTITIES, SKILL_SLOTS, WHO, newId, val, zAction, zCondition, zEffect,
+  ACTIONS, CONDITIONS, MAX_QUANTITIES, MOD_STATS, OPS, QUANTITIES, SKILL_SLOTS, WHO, newId, readQuantities, val, writeQuantities, zAction, zCondition, zEffect,
   type Action, type Condition, type Effect, type Quantity, type Trigger, type Value,
 } from "../../data/schema";
 import { DMG_LABEL, DMG_TYPES, SIN_LABEL, SINNERS, SINS } from "../../engine/constants";
@@ -13,6 +13,11 @@ import {
 import { Button, Check, NumberInput, Select, TextInput, type Opt } from "../../ui/controls";
 import { StatusSelect, useStatusName } from "../../ui/game";
 import { useWorkspace } from "../../store/workspace";
+import { toast } from "../../store/toast";
+import { Icon } from "../../ui/icons";
+import {
+  LIMIT_TEXT, OLD_DUPLICATE_NOTE, addedMessage, duplicateMessage, duplicateOf, groupName, hasDuplicates, nextQuantity, removedMessage,
+} from "./quantityList";
 
 export type Edit<T> = (fn: (d: Draft<T>) => void, key?: string) => void;
 export type RuleScope = "coin" | "skill" | "unit";
@@ -104,40 +109,139 @@ const DEFAULT_Q: Quantity = { kind: "statusPotency", who: "target", status: "BUR
 const MULTI_WHO = ["randomEnemy", "randomAlly", "lowestHpAlly", "lowestSpAlly", "fastestAlly", "slowestAlly", "lowestHpEnemy", "fastestEnemy", "alliesAfterSelf"];
 
 // ---------------------------------------------------------------------------------
-function QuantityEditor({ q, edit, label = "Value" }: { q: Quantity; edit: Edit<Quantity>; label?: string }) {
+function QuantityEditor({ q, edit, label = "Value", prefix, describedBy }: { q: Quantity; edit: Edit<Quantity>; label?: string; prefix?: string; describedBy?: string }) {
   const needs = QUANTITY_NEEDS[q.kind] ?? [];
+  // Inside a numbered group every control's name starts with the group, e.g. "Quantity 2: status".
+  const name = (text: string) => (prefix ? `${prefix}: ${text.toLowerCase()}` : text);
   return (
     <>
-      <Select label={label} value={q.kind} onChange={(v) => edit((d) => void (d.kind = v))} options={QUANTITIES.map((k) => ({ value: k, label: QUANTITY_LABEL[k] }))} />
-      {needs.includes("status") && <StatusSelect value={q.status} onChange={(v) => edit((d) => void (d.status = v))} />}
-      {needs.includes("field") && <Select label="Field" value={q.field} onChange={(v) => edit((d) => void (d.field = v))} options={[{ value: "potency", label: "Potency" }, { value: "count", label: "Count" }]} />}
-      {needs.includes("who") && <Select label="Of whom" value={q.who} onChange={(v) => edit((d) => void (d.who = v))} options={WHO_OPTIONS} />}
-      {needs.includes("sin") && <Select label="Sin" value={q.sin} onChange={(v) => edit((d) => void (d.sin = v))} options={SINS.map((s) => ({ value: s, label: SIN_LABEL[s] }))} />}
+      <Select label={prefix ? name("what") : label} describedBy={describedBy} value={q.kind} onChange={(v) => edit((d) => void (d.kind = v))} options={QUANTITIES.map((k) => ({ value: k, label: QUANTITY_LABEL[k] }))} />
+      {needs.includes("status") && <StatusSelect label={name("Status")} describedBy={describedBy} value={q.status} onChange={(v) => edit((d) => void (d.status = v))} />}
+      {needs.includes("field") && <Select label={name("Field")} describedBy={describedBy} value={q.field} onChange={(v) => edit((d) => void (d.field = v))} options={[{ value: "potency", label: "Potency" }, { value: "count", label: "Count" }]} />}
+      {needs.includes("who") && <Select label={name("Of whom")} describedBy={describedBy} value={q.who} onChange={(v) => edit((d) => void (d.who = v))} options={WHO_OPTIONS} />}
+      {needs.includes("sin") && <Select label={name("Sin")} describedBy={describedBy} value={q.sin} onChange={(v) => edit((d) => void (d.sin = v))} options={SINS.map((s) => ({ value: s, label: SIN_LABEL[s] }))} />}
     </>
   );
 }
 
-/** A number, optionally scaling with something: "+2 for every 4 Bleed on target (max 4)". */
+const DEFAULT_PER = (): NonNullable<Value["per"]> => ({ q: { ...DEFAULT_Q }, q2: null, every: 1, amount: 1 });
+
+/** A number, optionally scaling with a sum of up to 5 quantities: "+2 for every 4 (Bleed + Burn on target) (max 4)". */
 export function ValueEditor({ label, v, edit, suffix, allowNegative = true }: { label: string; v: Value; edit: Edit<Value>; suffix?: string; allowNegative?: boolean }) {
   const scaling = !!v.per;
+  const root = useRef<HTMLDivElement>(null);
+  const uid = useId();
+  // What scaling looked like before it was turned off, so turning it back on in the same rule brings it back.
+  const kept = useRef<Value["per"]>(null);
+  const [refusal, setRefusal] = useState<{ index: number; text: string } | null>(null);
+  const focusNext = useRef<{ group: number } | "add" | null>(null);
+  const list = v.per ? readQuantities(v.per) : [];
+  const atLimit = list.length >= MAX_QUANTITIES;
+  const limitId = `${uid}-limit`;
+  const refusalId = `${uid}-refusal`;
+
+  // Move focus after an add or remove, once the new groups are on the page. Never leaves it on the page body.
+  useEffect(() => {
+    const target = focusNext.current;
+    if (!target || !root.current) return;
+    focusNext.current = null;
+    const el = target === "add" ? root.current.querySelector<HTMLElement>("[data-add-quantity]") : root.current.querySelector<HTMLElement>(`[data-qgroup="${target.group}"] select`);
+    el?.focus();
+  });
+
+  const editQuantity = (i: number, fn: (d: Draft<Quantity>) => void, key?: string) => {
+    if (!v.per) return;
+    // Try the change on a copy first, so a repeat of another quantity can be refused before anything is saved.
+    const trial = list.map((x) => ({ ...x }));
+    fn(trial[i] as Draft<Quantity>);
+    const other = duplicateOf(trial, i);
+    if (other >= 0) {
+      const text = duplicateMessage(i + 1, other + 1);
+      setRefusal({ index: i, text });
+      toast(text, "info");
+      return;
+    }
+    setRefusal(null);
+    edit((d) => fn(readQuantities(d.per!)[i] as Draft<Quantity>), key);
+  };
+
+  const add = () => {
+    if (!v.per || atLimit) return;
+    const n = list.length + 1;
+    setRefusal(null);
+    edit((d) => {
+      const l = readQuantities(d.per!);
+      if (l.length >= MAX_QUANTITIES) return;
+      writeQuantities(d.per!, [...l, nextQuantity(l)]);
+    });
+    focusNext.current = { group: n - 1 };
+    toast(addedMessage(n), "info");
+  };
+
+  const remove = (i: number) => {
+    if (!v.per) return;
+    setRefusal(null);
+    edit((d) => {
+      const l = readQuantities(d.per!);
+      if (l.length < 2) return;
+      l.splice(i, 1);
+      writeQuantities(d.per!, l);
+    });
+    focusNext.current = i > 0 ? { group: i - 1 } : "add";
+    toast(removedMessage(i + 1, list.length - 1), "info");
+  };
+
   return (
-    <div className="fields full" style={{ gridColumn: "1 / -1" }}>
+    <div className="fields full" style={{ gridColumn: "1 / -1" }} ref={root}>
       <NumberInput label={scaling ? `${label}: flat part` : label} value={v.base} onChange={(n) => edit((d) => void (d.base = n), "v-base")} min={allowNegative ? -999 : 0} max={9999} decimals={2} suffix={suffix} />
       <Check
         label="Scales with something"
         checked={scaling}
-        onChange={(on) =>
+        onChange={(on) => {
+          if (!on) kept.current = v.per;
           edit((d) => {
-            d.per = on ? { q: { kind: "statusPotency", who: "target", status: "BURN", field: "potency", sin: "WRATH" }, q2: null, every: 1, amount: 1 } : null;
-          })
-        }
+            d.per = on ? kept.current ?? DEFAULT_PER() : null;
+          });
+          setRefusal(null);
+        }}
         hint={scaling ? undefined : 'e.g. "+1 for every 3 Burn on target"'}
       />
       {v.per && (
         <>
           <NumberInput label="Add" value={v.per.amount} onChange={(n) => edit((d) => void (d.per!.amount = n), "v-amt")} min={-999} max={999} decimals={2} />
           <NumberInput label="For every" value={v.per.every} onChange={(n) => edit((d) => void (d.per!.every = n), "v-every")} min={0.01} max={999} decimals={2} />
-          <QuantityEditor q={v.per.q} edit={(fn, k) => edit((d) => fn(d.per!.q), k)} label="Of" />
+          {list.map((q, i) => {
+            const refused = refusal?.index === i;
+            return (
+              <fieldset key={i} className="quantity-group" data-qgroup={i} aria-describedby={refused ? refusalId : undefined}>
+                <legend>{groupName(i + 1, list.length)}</legend>
+                <div className="fields">
+                  <QuantityEditor q={q} prefix={`Quantity ${i + 1}`} describedBy={refused ? refusalId : undefined} edit={(fn, k) => editQuantity(i, fn, k)} />
+                </div>
+                {refused && (
+                  <p id={refusalId} className="quantity-note warn">
+                    <Icon name="warn" size={15} /> <span>{refusal.text}</span>
+                  </p>
+                )}
+                {i > 0 && <Button onClick={() => remove(i)}>{`Remove quantity ${i + 1}`}</Button>}
+              </fieldset>
+            );
+          })}
+          {!refusal && hasDuplicates(list) && (
+            <p className="quantity-note">
+              <Icon name="info" size={15} /> <span>{OLD_DUPLICATE_NOTE}</span>
+            </p>
+          )}
+          <div className="quantity-add">
+            <Button onClick={add} ariaDisabled={atLimit} describedBy={atLimit ? limitId : undefined} icon="plus">
+              Add another quantity
+            </Button>
+            {atLimit && (
+              <span id={limitId} className="quantity-note">
+                <Icon name="info" size={15} /> <span>{LIMIT_TEXT}</span>
+              </span>
+            )}
+          </div>
           <NumberInput label="Max (empty = none)" value={v.max ?? 0} onChange={(n) => edit((d) => void (d.max = n === 0 ? null : n), "v-max")} min={-999} max={9999} decimals={2} hint="0 means no cap" />
         </>
       )}

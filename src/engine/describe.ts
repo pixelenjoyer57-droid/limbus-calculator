@@ -1,5 +1,6 @@
 // Turns effect rules into game-style text, e.g. "[On Hit] Inflict 2 Burn".
 import { DMG_LABEL, SIN_LABEL } from "./constants";
+import { readQuantities } from "../data/schema";
 import type { Action, Coin, CoinType, Condition, Effect, Quantity, Trigger, Value, Who } from "../data/schema";
 import { BUILTIN_STATUSES, TREMOR_TYPE_INFO } from "./statuses";
 
@@ -177,7 +178,8 @@ export function describeValue(v: Value, nameOf: NameOf = builtinName, unit = "",
     return s;
   }
   const every = v.per.every === 1 ? "" : ` ${num(v.per.every)}`;
-  const what = v.per.q2 ? `(${describeQuantity(v.per.q, nameOf)} + ${describeQuantity(v.per.q2, nameOf)})` : describeQuantity(v.per.q, nameOf);
+  const quantities = readQuantities(v.per).map((x) => describeQuantity(x, nameOf));
+  const what = quantities.length > 1 ? `(${quantities.join(" + ")})` : quantities[0];
   let s = `${v.base ? fmt(v.base) + ", " : ""}${fmt(v.per.amount)} for every${every} ${what}`;
   const caps: string[] = [];
   if (v.max !== null && v.max !== undefined) caps.push(`max ${num(v.max)}${unit}`);

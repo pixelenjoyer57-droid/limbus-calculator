@@ -2,6 +2,10 @@
 
 Notable changes to Sinner's Workshop. Versions follow [semantic versioning](https://semver.org/).
 
+## Unreleased
+
+- **Rule builder**: a scaling number, such as a Coin Power gain, can now add up to 5 quantities, for example several statuses ("+1 for every 3 Burn and Bleed combined"). Use "Add another quantity" and "Remove quantity". Backups and share codes that use this may lose the extra statuses in an older open copy of the app until it is refreshed. Community suggestion.
+
 ## 1.0.0 — 2026-11-24
 
 First tagged release.
