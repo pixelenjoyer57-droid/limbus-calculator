@@ -1,6 +1,7 @@
 // Effect rules: "When <trigger>, if <conditions>, do <actions>".
 // This module evaluates quantities/conditions, picks units, runs actions and
 // collects numeric modifiers ("+20% damage", "Coin Power +1") for the combat code.
+import { MAX_EXTRA_QUANTITIES } from "../data/schema";
 import type { Action, Condition, Effect, ModStat, Quantity, Trigger, Value, Who } from "../data/schema";
 import { SINS, type DmgType, type Sin } from "./constants";
 import * as R from "./rng";
@@ -180,9 +181,18 @@ export function evalQuantity(q: Quantity, ctx: Ctx): number {
 export function evalValue(v: Value, ctx: Ctx): number {
   let x = v.base;
   if (v.per) {
-    const q = evalQuantity(v.per.q, ctx) + (v.per.q2 ? evalQuantity(v.per.q2, ctx) : 0);
-    const every = v.per.every || 1;
-    x += Math.floor(q / every + 1e-9) * v.per.amount;
+    const per = v.per;
+    let q = evalQuantity(per.q, ctx);
+    if (per.q2) {
+      q += evalQuantity(per.q2, ctx);
+      // Up to 3 more, only while the second one is set; never more than MAX_QUANTITIES in all, whatever was loaded.
+      const qx = per.qx;
+      if (qx) for (let i = 0; i < qx.length && i < MAX_EXTRA_QUANTITIES; i++) q += evalQuantity(qx[i], ctx);
+    }
+    if (!Number.isFinite(q)) q = 0;
+    const every = per.every || 1;
+    const step = Math.floor(q / every + 1e-9) * per.amount;
+    x += Number.isFinite(step) ? step : 0;
   }
   if (v.max !== null && v.max !== undefined) x = Math.min(v.max, x);
   if (v.min !== null && v.min !== undefined) x = Math.max(v.min, x);

@@ -332,6 +332,8 @@ table.table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
 .tip-btn { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font-size: 0.75rem; font-weight: 800; cursor: pointer; display: inline-grid; place-items: center; flex: none; padding: 0; }
 .tip-btn:hover, .tip-btn[aria-expanded="true"] { color: var(--gold); border-color: var(--gold); }
 .tip { font-size: 0.86rem; color: var(--text-2); background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 6px; font-weight: 400; }
+/* A focused control scrolls clear of the sticky top bar, the mobile bottom bar and the toast stack (WCAG 2.4.11). */
+html { scroll-padding-top: 6rem; scroll-padding-bottom: 40vh; }
 .toasts { position: fixed; left: 50%; transform: translateX(-50%); bottom: 24px; z-index: 60; display: flex; flex-direction: column; gap: 8px; width: min(520px, calc(100vw - 32px)); }
 @media (max-width: 860px) { .toasts { bottom: calc(78px + env(safe-area-inset-bottom)); } }
 .toast { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--panel-2); border: 1px solid var(--gold); box-shadow: var(--shadow); }
@@ -372,3 +374,14 @@ dialog.dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
   .save-pill { padding: 6px; }
   .topbar .btn.icon { width: 38px; }
 }
+
+/* Quantity groups in the rule builder: wrap at any width, large targets, text and icon together. */
+.quantity-group { grid-column: 1 / -1; min-width: 0; margin: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.quantity-group legend { padding: 0 6px; font-size: 0.85rem; font-weight: 600; color: var(--text-2); overflow-wrap: anywhere; }
+.quantity-group .fields { width: 100%; }
+.quantity-add { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.quantity-add .btn[aria-disabled="true"] { opacity: 0.7; cursor: not-allowed; }
+.quantity-note { margin: 0; display: flex; gap: 6px; align-items: flex-start; font-size: 0.85rem; color: var(--text-2); overflow-wrap: anywhere; grid-column: 1 / -1; }
+.quantity-note.warn { color: var(--warn); }
+.quantity-note svg { flex: none; margin-top: 2px; }
+.quantity-group .btn { max-width: 100%; white-space: normal; text-align: center; }

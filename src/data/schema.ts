@@ -72,15 +72,76 @@ export const zQuantity = z.object({
 });
 export type Quantity = z.infer<typeof zQuantity>;
 
+/** A value can add up to this many quantities: q, q2 and at most MAX_EXTRA_QUANTITIES more. */
+export const MAX_QUANTITIES = 5;
+export const MAX_EXTRA_QUANTITIES = MAX_QUANTITIES - 2;
+/** At most this many stored entries are inspected when reading extras, valid or not. */
+const MAX_EXTRA_SCAN = 32;
+
+/**
+ * Extra quantities (the third to fifth). Each entry is read with the same checks as any quantity,
+ * bad entries are dropped and only the first valid ones are kept. Anything that is not a list gives [].
+ * Entries are read one by one. Reading stops at the cap of valid entries, and never looks past the first MAX_EXTRA_SCAN entries, so a huge list of junk costs next to nothing.
+ */
+const zExtraQuantities = z.unknown().transform((raw): Quantity[] => {
+  const out: Quantity[] = [];
+  if (!Array.isArray(raw)) return out;
+  const n = Math.min(raw.length, MAX_EXTRA_SCAN);
+  for (let i = 0; i < n && out.length < MAX_EXTRA_QUANTITIES; i++) {
+    const r = zQuantity.safeParse(raw[i]);
+    if (r.success) out.push(r.data);
+  }
+  return out;
+});
+
+type Per = { q: Quantity; q2: Quantity | null; qx?: Quantity[]; every: number; amount: number };
+
+/** Keeps the stored shape tidy: no empty list, and no extras while the second quantity is empty (the first extra moves up). */
+function tidyPer<T extends Per>(p: T): T {
+  const qx = p.qx;
+  if (!qx || qx.length === 0) {
+    if (qx) delete p.qx;
+    return p;
+  }
+  if (!p.q2) {
+    p.q2 = qx[0];
+    if (qx.length > 1) p.qx = qx.slice(1);
+    else delete p.qx;
+  }
+  return p;
+}
+
+/** The quantities of a value, in order: [q, q2, ...extras], at most 5. The objects are the stored ones (editable in a draft). */
+export function readQuantities(per: Per): Quantity[] {
+  const out: Quantity[] = [per.q];
+  if (!per.q2) return out;
+  out.push(per.q2);
+  const qx = per.qx;
+  if (qx) for (let i = 0; i < qx.length && out.length < MAX_QUANTITIES; i++) out.push(qx[i]);
+  return out;
+}
+
+/** Writes an ordered list of quantities back into the stored fields (first 5 only, never a gap). An empty list changes nothing. */
+export function writeQuantities(per: Per, list: Quantity[]): void {
+  if (list.length === 0) return;
+  per.q = list[0];
+  per.q2 = list.length > 1 ? list[1] : null;
+  const extra = list.slice(2, MAX_QUANTITIES);
+  if (extra.length) per.qx = extra;
+  else delete per.qx;
+}
+
 export const zValue = z.object({
   base: num(0),
   per: z
     .object({
       q: zQuantity,
       q2: zQuantity.nullable().catch(null).default(null), // optional second number added to q ("for every 5 (Burn + Tremor)")
+      qx: zExtraQuantities.optional(), // optional third to fifth numbers added to q and q2 (at most 3)
       every: num(1, 0.0001, 1e6),
       amount: num(1),
     })
+    .transform(tidyPer)
     .nullable()
     .catch(null)
     .default(null),

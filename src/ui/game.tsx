@@ -94,7 +94,7 @@ export function useStatusOptions(load = false): Opt<string>[] {
   }, [custom, game]);
 }
 
-export function StatusSelect({ label = "Status", value, onChange, className }: { label?: string; value: string; onChange: (v: string) => void; className?: string }) {
+export function StatusSelect({ label = "Status", value, onChange, className, describedBy }: { label?: string; value: string; onChange: (v: string) => void; className?: string; describedBy?: string }) {
   const [touched, setTouched] = useState(false);
   const isGame = value.startsWith("G_");
   const options = useStatusOptions(touched || isGame);
@@ -102,7 +102,7 @@ export function StatusSelect({ label = "Status", value, onChange, className }: {
   const shown = isGame && !options.some((o) => o.value === value) ? [{ value, label: name(value), group: "From the game (wiki)" }, ...options] : options;
   return (
     <div onFocusCapture={() => setTouched(true)} onPointerDownCapture={() => setTouched(true)} style={{ display: "contents" }}>
-      <Select label={label} value={value} onChange={onChange} options={shown} className={className} />
+      <Select label={label} value={value} onChange={onChange} options={shown} className={className} describedBy={describedBy} />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { useSettings } from "../store/settings";
 import "./taginput.css";
 
 export function Button({
-  children, onClick, variant = "", small, icon, label, disabled, type = "button", title, className = "", block,
+  children, onClick, variant = "", small, icon, label, disabled, type = "button", title, className = "", block, ariaDisabled, describedBy,
 }: {
   children?: ReactNode;
   onClick?: () => void;
@@ -19,6 +19,9 @@ export function Button({
   title?: string;
   className?: string;
   block?: boolean;
+  /** Unavailable but still focusable, so a screen reader can find it and read why (pair with describedBy). */
+  ariaDisabled?: boolean;
+  describedBy?: string;
 }) {
   const iconOnly = icon && !children;
   return (
@@ -29,6 +32,8 @@ export function Button({
       disabled={disabled}
       aria-label={iconOnly ? label ?? title : label}
       title={title ?? (iconOnly ? label : undefined)}
+      aria-disabled={ariaDisabled || undefined}
+      aria-describedby={describedBy}
     >
       {icon && <Icon name={icon} size={small ? 17 : 19} />}
       {children}
@@ -293,9 +298,10 @@ export interface Opt<T extends string> {
 }
 
 export function Select<T extends string>({
-  label, value, onChange, options, hint, warn, info, className, placeholder,
+  label, value, onChange, options, hint, warn, info, className, placeholder, describedBy,
 }: {
   label: string;
+  describedBy?: string;
   value: T;
   onChange: (v: T) => void;
   options: Opt<T>[];
@@ -316,7 +322,7 @@ export function Select<T extends string>({
   const known = options.some((o) => o.value === value) || (placeholder !== undefined && value === "");
   return (
     <Field label={label} hint={hint} warn={warn} info={info} htmlFor={id} className={className}>
-      <select id={id} className="input" value={value} onChange={(e) => onChange(e.target.value as T)}>
+      <select id={id} className="input" value={value} onChange={(e) => onChange(e.target.value as T)} aria-describedby={describedBy}>
         {!known && (
           <option value={value} disabled>
             {placeholder ?? "— pick one —"}
