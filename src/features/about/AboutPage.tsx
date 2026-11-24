@@ -100,8 +100,13 @@ export default function AboutPage() {
         </p>
         <p>
           We name you in public, for example in the changelog, only if you say yes. Otherwise it says "community suggestion". We keep only your display name, the channel and the date. Giving a name is optional.
+        </p>
+        <p>
           We may copy suggestions, bug reports and custom kits you post on Discord or GitHub into our private notes. We may read them with third-party AI tools to help plan the work. We keep your name while we consider
-          the idea. We delete it from our notes on request. Your original post stays under Discord's or GitHub's own rules. To ask us to name you, or to delete your name, message a Discord moderator or comment on
+          the idea. We delete it from our notes on request. Your original post stays under Discord's or GitHub's own rules.
+        </p>
+        <p>
+          To ask us to name you, or to delete your name, message a Discord moderator or comment on
           your <Ext to={ISSUES}>GitHub issue</Ext>. Please leave personal details out of public comments. The app does not send your workshops or data anywhere. See Privacy above for the host's logs.
         </p>
         <p>
