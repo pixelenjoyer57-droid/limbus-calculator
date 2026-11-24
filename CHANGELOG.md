@@ -2,6 +2,10 @@
 
 Notable changes to Sinner's Workshop. Versions follow [semantic versioning](https://semver.org/).
 
+## Unreleased
+
+- **Easier to read:** better contrast in the light theme (the gold links, active menu item, selected tabs and the gold button and skip link) and for the small grey text on a selected list item in the dark theme. Selected tabs and list items now also show a mark besides colour. The light high-contrast theme now also applies when your device is set to light.
+
 ## 1.0.0 — 2026-11-24
 
 First tagged release.
