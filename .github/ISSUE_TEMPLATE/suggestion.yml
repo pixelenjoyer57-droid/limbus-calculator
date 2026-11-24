@@ -14,5 +14,5 @@ body:
     attributes:
       label: Terms
       options:
-        - label: I made this suggestion myself or may share it. I allow it to be used in the app without payment or credit obligation. I am not posting leaks or unreleased game material.
+        - label: I made this suggestion myself or may share it. I allow it to be used in the app without payment. I am not posting leaks or unreleased game material.
           required: true
