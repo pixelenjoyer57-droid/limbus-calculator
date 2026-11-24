@@ -2,6 +2,10 @@
 
 Notable changes to Sinner's Workshop. Versions follow [semantic versioning](https://semver.org/).
 
+## Unreleased
+
+- Clearer terms for how suggestions are handled (About page, Contributing guide, suggestion form).
+
 ## 1.0.0 — 2026-11-24
 
 First tagged release.
