@@ -3,7 +3,8 @@ import { newGift, newTeam } from "../src/data/defaults";
 import { encodeShareCode, importAny, itemsPayload } from "../src/data/migrate";
 import { zTeam, type Gift, type Team } from "../src/data/schema";
 import { NO_GIFT_FILTER, giftPasses, keywordText, tierText } from "../src/features/library/giftFilter";
-import { MAX_TEAM_GIFTS, countById, countText, giftButtonName, limitMessage, restoreGift, toggleGift, type TeamGift } from "../src/features/team/giftToggle";
+import { MAX_TEAM_GIFTS, countById, countText, giftButtonName, giftSummary, limitMessage, restoreGift, toggleGift, type TeamGift } from "../src/features/team/giftToggle";
+import { pickerLabel } from "../src/ui/pickerLabel";
 import { PAGE, pageInfo, searchItems, showingText } from "../src/lib/search";
 
 const gift = (name: string, over: Partial<Gift> = {}): Gift => newGift({ id: "g:" + name, name, ...over });
@@ -136,5 +137,15 @@ describe("share codes", () => {
     const t = back.items[0] as Team;
     expect(t.gifts).toHaveLength(80);
     expect(t.gifts).toEqual(gifts);
+  });
+});
+
+describe("labels", () => {
+  it("the section summary counts entries", () => {
+    expect([0, 1, 3].map(giftSummary)).toEqual(["0 gifts", "1 gift", "3 gifts"]);
+  });
+  it("a picker's name includes the visible 'from the game' badge only when it shows", () => {
+    expect(pickerLabel("Gift", "Hot", false)).toBe("Gift: Hot. Change");
+    expect(pickerLabel("Gift", "Hot", true)).toBe("Gift: Hot from the game. Change");
   });
 });

@@ -1,5 +1,6 @@
 // Reusable picker for content that can come from the user's workshop or from the game data.
 import { useEffect, useMemo, useRef, useState } from "react";
+import { pickerLabel } from "./pickerLabel";
 import { usePagedSearch } from "./usePagedSearch";
 import { COLLECTION, type AnyContent } from "../data/schema";
 import { useWorkspace } from "../store/workspace";
@@ -51,8 +52,8 @@ export function ContentPicker({
   return (
     <div className={`field ${className}`}>
       {!compact && <span className="label">{label}</span>}
-      <button type="button" className="input picker-btn" aria-haspopup="dialog" aria-label={`${label}: ${text}. Change`} onClick={() => setOpen(true)}>
-        <span className="picker-name">{text}</span>
+      <button type="button" className="input picker-btn" aria-haspopup="dialog" aria-label={pickerLabel(label, text, !!(game && value))} onClick={() => setOpen(true)}>
+        <span className="picker-name">{text}</span>{" "}
         {game && value && <span className="badge picker-tag">from the game</span>}
         <Icon name="chevron" size={16} className="picker-chev" />
       </button>

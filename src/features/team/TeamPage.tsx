@@ -13,6 +13,7 @@ import { EmptyState, Section } from "../../ui/layout";
 import { Icon } from "../../ui/icons";
 import { ContentPicker, useResolvedItem } from "../../ui/ContentPicker";
 import type { Ego, Identity } from "../../data/schema";
+import { giftSummary } from "./giftToggle";
 import { GiftsSection } from "./GiftsSection";
 
 const emptyMember = (): TeamMember => ({ identityId: null, level: 65, uptie: 4, egos: { ZAYIN: null, TETH: null, HE: null, WAW: null, ALEPH: null } });
@@ -140,7 +141,7 @@ function TeamEditor({ team }: { team: Team }) {
         </ol>
       </Section>
 
-      <Section id="team-gifts" title="E.G.O Gifts" summary={`${team.gifts.length} gift${team.gifts.length === 1 ? "" : "s"}`}>
+      <Section id="team-gifts" title="E.G.O Gifts" summary={giftSummary(team.gifts.length)}>
         <GiftsSection team={team} edit={edit} />
       </Section>
 

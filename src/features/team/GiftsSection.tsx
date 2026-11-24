@@ -36,11 +36,7 @@ const GiftButton = memo(function GiftButton({ gift, on, own, index, onToggle }: 
         <span className="gg-kw">{keywordText(gift)}</span>
       </span>
       <span className="gg-on" aria-hidden="true">
-        {on && (
-          <>
-            <Icon name="check" size={16} /> On
-          </>
-        )}
+        {on && <Icon name="check" size={22} />}
       </span>
     </button>
   );

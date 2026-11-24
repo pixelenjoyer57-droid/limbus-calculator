@@ -55,3 +55,4 @@ export function giftButtonName(g: { name: string }, tier: string, keyword: strin
 
 export const limitMessage = `The team already has ${MAX_TEAM_GIFTS} gifts, which is the most it can hold. Turn one off to make room.`;
 export const countText = (n: number) => `${n} of ${MAX_TEAM_GIFTS} selected`;
+export const giftSummary = (n: number) => `${n} gift${n === 1 ? "" : "s"}`;

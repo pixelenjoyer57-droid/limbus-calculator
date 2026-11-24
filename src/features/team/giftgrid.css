@@ -37,3 +37,8 @@
 .gg-filters > * { min-width: 0; }
 .gg { contain: inline-size; } /* the grid fits its parent instead of widening the page */
 .gg-row-pick { contain: inline-size; } /* a long gift name wraps instead of widening the page */
+/* Every control in this section is at least 44 by 44 px, with gaps between them. */
+.gg .tab { min-height: var(--tap); }
+.gg-actions .btn.small { min-height: var(--tap); }
+.gg-row .btn.icon.small { width: var(--tap); min-height: var(--tap); }
+.gg-actions { gap: 10px; }
