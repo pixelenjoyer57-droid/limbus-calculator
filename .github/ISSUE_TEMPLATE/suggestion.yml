@@ -13,6 +13,7 @@ body:
     id: terms
     attributes:
       label: Terms
+      description: How we handle suggestions (credit, private notes, deleting your name) is in the [contributing guide](https://github.com/pixelenjoyer57-droid/limbus-calculator/blob/main/.github/CONTRIBUTING.md).
       options:
         - label: I made this suggestion myself or may share it. I allow it to be used in the app without payment. I am not posting leaks or unreleased game material.
           required: true
