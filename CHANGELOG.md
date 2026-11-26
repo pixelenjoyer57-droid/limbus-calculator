@@ -2,13 +2,13 @@
 
 Notable changes to Sinner's Workshop. Versions follow [semantic versioning](https://semver.org/).
 
-## Unreleased
+## 1.1.0 — 2026-11-26
 
-- The About page's suggestion terms are split into short paragraphs; the suggestion form links to the contributing guide.
 - **E.G.O Gifts on the Teams screen:** a searchable grid of gift buttons replaces "Add a gift". Press a gift to put it on the team and press it again to take it off (with Undo). Filter by tier, keyword and legacy, show only the gifts you picked, and see "N of 80 selected". Tier and keyword are written on every button, with colour as an extra. Your team's gifts are listed below with their level and "Remove gift", as before. Pickers now also say "from the game" to screen readers when they show it on screen.
-- Clearer terms for how suggestions are handled (About page, Contributing guide, suggestion form).
+- **Rule builder:** a scaling number, such as a Coin Power gain, can now add up to 5 quantities, for example several statuses ("+1 for every 3 Burn and Bleed combined"). Use "Add another quantity" and "Remove quantity". Backups and share codes that use this may lose the extra statuses in an older open copy of the app until it is refreshed. Community suggestion.
 - **Easier to read:** better contrast in the light theme (the gold links, active menu item, selected tabs and the gold button and skip link) and for the small grey text on a selected list item in the dark theme. Selected tabs and list items now also show a mark besides colour. The light high-contrast theme now also applies when your device is set to light.
-- **Rule builder**: a scaling number, such as a Coin Power gain, can now add up to 5 quantities, for example several statuses ("+1 for every 3 Burn and Bleed combined"). Use "Add another quantity" and "Remove quantity". Backups and share codes that use this may lose the extra statuses in an older open copy of the app until it is refreshed. Community suggestion.
+- **Keyboard:** the focused control now stays visible above the bottom bar and notices. Plain notices clear when you press Tab; notices with Undo, and errors, stay.
+- **Suggestions:** clearer terms for how suggestions are handled, in short paragraphs (About page and contributing guide), and the suggestion form links to the contributing guide.
 
 ## 1.0.0 — 2026-11-24
 
