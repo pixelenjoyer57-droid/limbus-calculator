@@ -2,7 +2,7 @@
   "name": "limbus-calculator",
   "private": true,
   "license": "MIT",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Sinner's Workshop: a Limbus Company damage calculator and combat simulator for testing custom Identities, E.G.O, enemies, encounters, events and E.G.O Gifts.",
   "type": "module",
   "engines": {
